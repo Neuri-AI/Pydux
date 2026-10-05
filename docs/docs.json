@@ -22,50 +22,52 @@
       "theme": "github-dark"
     }
   },
-  "navigation": [
-    {
-      "group": "Getting started",
-      "icon": "rocket",
-      "pages": [
-        "index",
-        "getting-started/installation",
-        "getting-started/quickstart",
-        "getting-started/qyro-for-beginners"
-      ]
-    },
-    {
-      "group": "Core concepts",
-      "icon": "boxes",
-      "pages": [
-        "concepts/store-and-slices",
-        "concepts/selectors"
-      ]
-    },
-    {
-      "group": "Guides",
-      "icon": "book-open",
-      "pages": [
-        "guides/async-thunks",
-        "guides/devtools"
-      ]
-    },
-    {
-      "group": "Integrations",
-      "icon": "blocks",
-      "pages": [
-        "integrations/qyro",
-        "integrations/ui-bindings"
-      ]
-    },
-    {
-      "group": "Reference",
-      "icon": "code-xml",
-      "pages": [
-        "reference/configure-store",
-        "reference/api"
-      ]
-    }
-  ],
+  "navigation": {
+    "groups": [
+      {
+        "group": "Getting started",
+        "icon": "rocket",
+        "pages": [
+          "index",
+          "getting-started/installation",
+          "getting-started/quickstart",
+          "getting-started/qyro-for-beginners"
+        ]
+      },
+      {
+        "group": "Core concepts",
+        "icon": "boxes",
+        "pages": [
+          "concepts/store-and-slices",
+          "concepts/selectors"
+        ]
+      },
+      {
+        "group": "Guides",
+        "icon": "book-open",
+        "pages": [
+          "guides/async-thunks",
+          "guides/devtools"
+        ]
+      },
+      {
+        "group": "Integrations",
+        "icon": "blocks",
+        "pages": [
+          "integrations/qyro",
+          "integrations/ui-bindings"
+        ]
+      },
+      {
+        "group": "Reference",
+        "icon": "code-xml",
+        "pages": [
+          "reference/configure-store",
+          "reference/api"
+        ]
+      }
+    ]
+  },
   "footer": {
     "socials": {
       "github": "https://github.com/Neuri-AI/Pydux"
