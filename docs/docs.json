@@ -1,19 +1,74 @@
 {
   "$schema": "https://mintlify.com/docs.json",
+  "theme": "sequoia",
   "name": "PyDux",
   "description": "Redux Toolkit-inspired state management for Python desktop applications.",
   "logo": "https://ik.imagekit.io/kummiktgaiq/ppg/Qyro-logo.svg?updatedAt=1755215983279",
-  "colors": {"primary": "#8B5CF6", "light": "#A78BFA", "dark": "#7C3AED"},
+  "colors": {
+    "primary": "#8B5CF6",
+    "light": "#A78BFA",
+    "dark": "#7C3AED"
+  },
   "favicon": "https://ik.imagekit.io/kummiktgaiq/ppg/Qyro-logo.svg?updatedAt=1755215983279",
-  "appearance": {"default": "system"},
-  "icons": {"library": "lucide"},
-  "styling": {"eyebrows": "breadcrumbs", "codeblocks": {"theme": "github-dark"}},
+  "appearance": {
+    "default": "system"
+  },
+  "icons": {
+    "library": "lucide"
+  },
+  "styling": {
+    "eyebrows": "breadcrumbs",
+    "codeblocks": {
+      "theme": "github-dark"
+    }
+  },
   "navigation": [
-    {"group": "Getting started", "icon": "rocket", "pages": ["index", "getting-started/installation", "getting-started/quickstart", "getting-started/qyro-for-beginners"]},
-    {"group": "Core concepts", "icon": "boxes", "pages": ["concepts/store-and-slices", "concepts/selectors"]},
-    {"group": "Guides", "icon": "book-open", "pages": ["guides/async-thunks", "guides/devtools"]},
-    {"group": "Integrations", "icon": "blocks", "pages": ["integrations/qyro", "integrations/ui-bindings"]},
-    {"group": "Reference", "icon": "code-xml", "pages": ["reference/configure-store", "reference/api"]}
+    {
+      "group": "Getting started",
+      "icon": "rocket",
+      "pages": [
+        "index",
+        "getting-started/installation",
+        "getting-started/quickstart",
+        "getting-started/qyro-for-beginners"
+      ]
+    },
+    {
+      "group": "Core concepts",
+      "icon": "boxes",
+      "pages": [
+        "concepts/store-and-slices",
+        "concepts/selectors"
+      ]
+    },
+    {
+      "group": "Guides",
+      "icon": "book-open",
+      "pages": [
+        "guides/async-thunks",
+        "guides/devtools"
+      ]
+    },
+    {
+      "group": "Integrations",
+      "icon": "blocks",
+      "pages": [
+        "integrations/qyro",
+        "integrations/ui-bindings"
+      ]
+    },
+    {
+      "group": "Reference",
+      "icon": "code-xml",
+      "pages": [
+        "reference/configure-store",
+        "reference/api"
+      ]
+    }
   ],
-  "footer": {"socials": {"github": "https://github.com/Neuri-AI/Pydux"}}
+  "footer": {
+    "socials": {
+      "github": "https://github.com/Neuri-AI/Pydux"
+    }
+  }
 }
