@@ -1,0 +1,374 @@
+---
+title: "PyDux + Qyro para principiantes"
+description: "Construye una aplicación de escritorio con estado compartido, desde cero y paso a paso."
+icon: "graduation-cap"
+---
+
+# PyDux + Qyro para principiantes
+
+Esta guía asume que no sabes nada de Qyro ni de PyDux. Cada nivel se apoya en el anterior, pero puedes parar después del nivel 4: ya tendrás una aplicación funcional.
+
+<Warning>
+  Qyro y PyDux están en alpha. Sus APIs pueden cambiar entre versiones.
+</Warning>
+
+## Mapa de la guía
+
+| Nivel | Aprenderás |
+| --- | --- |
+| 0 | Qué problema resuelve cada proyecto. |
+| 1 | Crear y ejecutar una aplicación Qyro. |
+| 2 | El ciclo de vida de un componente. |
+| 3 | Crear tu primer store con PyDux. |
+| 4 | Conectar PyDux y Qyro en una aplicación completa. |
+| 5 | Payloads, varios slices y selectores derivados. |
+| 6 | Trabajo asíncrono con thunks. |
+| 7 | DevTools y viaje en el tiempo. |
+| 8 | Conectar varios valores con `connect_qyro`. |
+| 9 | Errores comunes y checklist. |
+
+---
+
+## Nivel 0: qué es cada cosa
+
+**Qyro** es el esqueleto de una aplicación de escritorio: proporciona contexto de aplicación, settings, recursos y un ciclo de vida para componentes.
+
+**PyDux** es la memoria central de la aplicación. Imagina una pizarra compartida:
+
+- Todo el estado vive en un lugar: el **store**.
+- La interfaz no escribe directamente en la pizarra; envía una **acción**.
+- Un **reducer** aplica la regla de cambio.
+- Un **selector** extrae el dato que un widget necesita.
+- PyDux avisa al widget únicamente si ese dato cambió.
+
+```text
+Click en un botón → dispatch(acción) → reducer actualiza estado
+                                            │
+Widget actualizado ← selector cambió ←──────┘
+```
+
+| Palabra | Significa |
+| --- | --- |
+| Store | La pizarra completa que guarda el estado. |
+| Slice | Una sección con nombre dentro de la pizarra, por ejemplo `counter`. |
+| Action | Una nota que describe lo que pasó, por ejemplo `counter/increment`. |
+| Reducer | La regla que decide el siguiente estado. |
+| Selector | Una función que obtiene un valor del estado. |
+| Dispatch | Enviar una acción al store. |
+
+---
+
+## Nivel 1: crea una aplicación Qyro
+
+Qyro tiene dos piezas distintas:
+
+- **Qyro CLI** crea y administra proyectos: `init`, `start`, `build` y `bundle`.
+- **Qyro Runtime** se ejecuta dentro de tu app: `ApplicationContext`, `Component`, recursos y settings.
+
+Instala la CLI y crea un proyecto que ya incluya PyDux:
+
+```bash
+pip install "qyro-cli[desktop]"
+qyro init --name mi-app --binding PySide6 --addon pydux
+cd mi-app
+qyro start
+```
+
+`--binding` puede ser `PySide6`, `PyQt6`, `PyQt5`, `PySide2`, `Kivy` o `Tkinter`. Si omites las opciones, la CLI abre un asistente interactivo.
+
+<Note>
+  Qyro CLI crea y empaqueta proyectos; Qyro Runtime es el código que corre dentro de la aplicación.
+</Note>
+
+---
+
+## Nivel 2: entiende el ciclo de vida
+
+Qyro llama hooks en este orden:
+
+| Orden | Hook | Uso |
+| --- | --- | --- |
+| 1 | `component_will_mount()` | Preparar tamaño, estado y suscripciones. |
+| 2 | `render()` | Crear widgets y layouts. |
+| 3 | `component_did_mount()` | Ejecutar trabajo después de dibujar. |
+| 4 | `set_styles()` | Aplicar estilos. |
+| 5 | `on_resize()` | Reaccionar a un cambio de tamaño. |
+
+Regla de oro: no intentes modificar widgets en `component_will_mount()`, porque aún no existen. Créalo todo en `render()`.
+
+```python
+import sys
+from PySide6.QtWidgets import QLabel, QMainWindow
+from qyro import ApplicationContext
+from qyro.ui.component import Component
+
+
+class MyWindow(QMainWindow, Component, ApplicationContext):
+    def component_will_mount(self):
+        self.resize(640, 480)
+
+    def render(self):
+        label = QLabel(f"App: {self.window_title}", parent=self)
+        label.move(24, 24)
+
+
+window = MyWindow()
+window.show()
+sys.exit(window.run())
+```
+
+---
+
+## Nivel 3: crea tu primer store
+
+### 1. Define un slice
+
+Un slice junta nombre, estado inicial y reglas de cambio. Los reducers reciben un borrador del estado y pueden modificarlo directamente.
+
+```python
+from pydux import create_slice
+
+counter_slice = create_slice(
+    name="counter",
+    initial_state={"value": 0},
+    reducers={
+        "increment": lambda state, action: state.update(value=state["value"] + 1),
+        "decrement": lambda state, action: state.update(value=state["value"] - 1),
+    },
+)
+```
+
+PyDux genera `counter_slice.actions.increment()` y `counter_slice.actions.decrement()`. No necesitas escribir las acciones manualmente.
+
+### 2. Crea el store y despacha acciones
+
+```python
+from pydux import configure_store
+
+store = configure_store({"counter": counter_slice}, devtools=True)
+
+print(store.get_state())  # {"counter": {"value": 0}}
+store.dispatch(counter_slice.actions.increment())
+store.dispatch(counter_slice.actions.increment())
+store.dispatch(counter_slice.actions.decrement())
+print(store.get_state())  # {"counter": {"value": 1}}
+```
+
+### 3. Escucha un valor con un selector
+
+```python
+select_value = lambda state: state["counter"]["value"]
+
+unsubscribe = store.select(
+    select_value,
+    lambda value: print("nuevo valor:", value),
+    fire_immediately=True,
+)
+
+store.dispatch(counter_slice.actions.increment())
+unsubscribe()
+```
+
+`fire_immediately=True` entrega el valor actual al suscribirte. Guarda siempre la función `unsubscribe` si la suscripción no la administra un componente Qyro.
+
+---
+
+## Nivel 4: conecta PyDux con Qyro
+
+Separa el store de la interfaz. Crea `store.py`:
+
+```python store.py
+from pydux import configure_store, create_selector, create_slice
+
+counter_slice = create_slice(
+    name="counter",
+    initial_state={"value": 0},
+    reducers={
+        "increment": lambda state, action: state.update(value=state["value"] + 1),
+        "decrement": lambda state, action: state.update(value=state["value"] - 1),
+    },
+)
+
+store = configure_store({"counter": counter_slice}, devtools=True)
+select_label = create_selector(
+    lambda state: state["counter"]["value"],
+    lambda value: f"Contador = {value}",
+)
+```
+
+Después crea `main.py`:
+
+```python main.py
+import sys
+from PySide6.QtWidgets import QLabel, QMainWindow, QPushButton, QVBoxLayout, QWidget
+from qyro import ApplicationContext
+from qyro.ui.component import Component
+from pydux.adapters.qyro import Reactive
+from store import counter_slice, select_label, store
+
+
+class App(QMainWindow, Component, Reactive, ApplicationContext):
+    def component_will_mount(self):
+        self.resize(320, 200)
+        self.bind_selector(store, select_label, self._on_label_change)
+
+    def render(self):
+        central = QWidget(self)
+        layout = QVBoxLayout(central)
+        self._label = QLabel("...", parent=central)
+        plus = QPushButton("+1", parent=central)
+        minus = QPushButton("-1", parent=central)
+        plus.clicked.connect(lambda: store.dispatch(counter_slice.actions.increment()))
+        minus.clicked.connect(lambda: store.dispatch(counter_slice.actions.decrement()))
+        layout.addWidget(self._label)
+        layout.addWidget(plus)
+        layout.addWidget(minus)
+        self.setCentralWidget(central)
+
+    def _on_label_change(self, text: str):
+        self._label.setText(text)
+
+
+window = App()
+window.show()
+sys.exit(window.run())
+```
+
+El primer valor se entrega después de `render()` en el siguiente tick de la interfaz; por eso el `QLabel` ya existe cuando `_on_label_change` lo usa. `Reactive` libera las suscripciones cuando el componente se desmonta.
+
+---
+
+## Nivel 5: payloads, varios slices y selectores derivados
+
+Las acciones pueden transportar información en `action.payload`:
+
+```python
+counter_slice = create_slice(
+    name="counter",
+    initial_state={"value": 0},
+    reducers={
+        "add": lambda state, action: state.update(value=state["value"] + action.payload),
+    },
+)
+
+store.dispatch(counter_slice.actions.add(5))
+```
+
+Un store puede tener muchos slices:
+
+```python
+user_slice = create_slice(
+    name="user",
+    initial_state={"name": "Invitado"},
+    reducers={"set_name": lambda state, action: state.update(name=action.payload)},
+)
+
+store = configure_store({"counter": counter_slice, "user": user_slice})
+```
+
+Para combinar valores, usa `create_selector`:
+
+```python
+from pydux import create_selector
+
+select_name = lambda state: state["user"]["name"]
+select_value = lambda state: state["counter"]["value"]
+select_summary = create_selector(
+    select_name,
+    select_value,
+    lambda name, value: f"{name} lleva {value} clics",
+)
+```
+
+Lee [selectors and subscriptions](/concepts/selectors) para comparar valores compuestos con `shallow_equal` o `deep_equal`.
+
+---
+
+## Nivel 6: trabajo asíncrono con thunks
+
+Un thunk genera tres acciones: `pending`, `fulfilled` y `rejected`.
+
+```python
+from pydux import create_async_thunk, create_slice
+
+jobs_slice = create_slice(
+    name="jobs",
+    initial_state={"status": "idle", "result": None, "error": None},
+    reducers={},
+    extra_reducers={
+        "jobs/fetch/pending": lambda state, action: state.update(status="loading", error=None),
+        "jobs/fetch/fulfilled": lambda state, action: state.update(status="ok", result=action.payload),
+        "jobs/fetch/rejected": lambda state, action: state.update(status="error", error=action.payload),
+    },
+)
+
+fetch_jobs = create_async_thunk("jobs/fetch", lambda: ["compile", "test", "release"])
+store.dispatch(fetch_jobs())
+```
+
+Consulta [Async thunks](/guides/async-thunks) para funciones `async def`, errores y diseño de estados de carga.
+
+---
+
+## Nivel 7: DevTools e inspector
+
+Con `devtools=True`, PyDux registra cada dispatch y abre un inspector local.
+
+```python
+store = configure_store({"counter": counter_slice}, devtools=True)
+print(store.inspector.base_url)
+
+store.devtools.undo()
+store.devtools.redo()
+store.devtools.jump_to_state(0)
+```
+
+Abre la URL en el navegador para ver acciones, payloads, diferencias de estado y el historial. El inspector usa `127.0.0.1:8765` por defecto; si está ocupado, PyDux elige otro puerto.
+
+---
+
+## Nivel 8: conecta varios valores con `connect_qyro`
+
+Si un componente necesita varios selectores, el decorador los asigna como atributos y llama opcionalmente a `on_state_change`.
+
+```python
+from pydux.adapters.qyro import connect_qyro
+
+@connect_qyro(
+    store,
+    {
+        "label": select_label,
+        "count": lambda state: state["counter"]["value"],
+    },
+)
+class StatusPanel:
+    def on_state_change(self, props: dict):
+        print(props)
+```
+
+Cuando el componente se desmonta, `connect_qyro` cancela todas sus suscripciones.
+
+---
+
+## Nivel 9: errores comunes y checklist
+
+| Situación | Qué hacer |
+| --- | --- |
+| El widget no existe al llegar el primer valor | Suscríbete en `component_will_mount`; crea widgets en `render`. |
+| Un cambio no actualiza la interfaz | Revisa que el selector lea la clave correcta y que la acción se haya despachado. |
+| El componente sigue recibiendo cambios al cerrarse | Usa `Reactive.bind_selector` o conserva y llama `unsubscribe()`. |
+| Un selector devuelve un dict/list nuevo | Pasa `shallow_equal` o `deep_equal` a `store.select`. |
+| Una tarea lenta bloquea la interfaz | Mueve el trabajo a un thunk o servicio asíncrono; no lo pongas en un reducer. |
+| No sabes qué cambió | Activa `devtools=True` y abre el inspector. |
+
+Antes de continuar, confirma lo siguiente:
+
+- Tu estado se modifica sólo mediante `store.dispatch(...)`.
+- Cada slice tiene una responsabilidad clara.
+- La UI se suscribe con selectores, no sincroniza valores manualmente.
+- Los reducers no hacen I/O ni trabajo lento.
+- Las suscripciones se cancelan al destruir el consumidor.
+
+<Tip>
+  Ya tienes los fundamentos. Ahora consulta las páginas de conceptos y guías cuando aparezca una necesidad real en tu aplicación; no hace falta memorizar toda la API.
+</Tip>

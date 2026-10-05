@@ -1,0 +1,73 @@
+---
+title: "DevTools and inspector"
+description: "Record actions, inspect state transitions, and navigate application history."
+icon: "history"
+---
+
+# DevTools and inspector
+
+Set `devtools=True` when creating a store to record every dispatch. PyDux also starts a local inspector on `127.0.0.1:8765` by default; if that port is busy, it chooses a free port.
+
+```python
+from pydux import configure_store
+
+store = configure_store({"counter": counter_slice}, devtools=True)
+print(store.inspector.base_url)
+```
+
+Open `store.inspector.base_url` in a browser to view actions, payloads, state diffs, and history. The page updates live through Server-Sent Events.
+
+## Time travel
+
+```python
+store.devtools.undo()
+store.devtools.redo()
+store.devtools.jump_to_state(4)
+```
+
+| Member | Purpose |
+| --- | --- |
+| `history` | Recorded `ActionTrace` values. |
+| `undo()` / `redo()` | Move through recorded states. |
+| `jump_to_state(index)` | Restore a recorded state. |
+| `export_trace_json()` | Export the current trace list as JSON. |
+
+Time-travel actions do not create another trace, so navigating history does not pollute it.
+
+## Inspector configuration
+
+```python
+store = configure_store(
+    {"counter": counter_slice},
+    devtools=True,
+    inspector_host="127.0.0.1",
+    inspector_port=9900,
+    inspector_log=False,
+)
+```
+
+To manage startup yourself, disable automatic startup and call `start_inspector`:
+
+```python
+from pydux import start_inspector
+
+store = configure_store({"counter": counter_slice}, devtools=True, inspector_auto_start=False)
+inspector = start_inspector(store, host="127.0.0.1", port=9900)
+inspector.stop()  # At application shutdown, if explicit cleanup is needed.
+```
+
+## HTTP endpoints
+
+| Endpoint | Description |
+| --- | --- |
+| `GET /health` | Liveness check. |
+| `GET /api/traces` | Recorded traces and active index. |
+| `GET /api/state` | Current store state. |
+| `POST /api/undo` | Undo one state. |
+| `POST /api/redo` | Redo one state. |
+| `POST /api/jump` | Jump to `{"index": <int>}`. |
+| `GET /api/events` | Live SSE stream. |
+
+<Warning>
+  DevTools keeps snapshots and calculates diffs after each dispatch. Disable it in performance-sensitive production paths unless you explicitly need it.
+</Warning>

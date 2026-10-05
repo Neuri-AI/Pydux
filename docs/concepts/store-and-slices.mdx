@@ -1,0 +1,82 @@
+---
+title: "Stores, slices, and actions"
+description: "Understand the application state tree and the action-driven update model."
+icon: "boxes"
+---
+
+# Stores, slices, and actions
+
+PyDux keeps application state in one store. The root state is normally a dictionary with one key per slice.
+
+```python
+{
+    "counter": {"value": 2},
+    "user": {"name": "Ada"},
+}
+```
+
+## Slices
+
+Use `create_slice(...)` to colocate a state section, its reducers, and its generated action creators. A reducer receives `(state, action)`. It may mutate the supplied draft or return a replacement state.
+
+```python
+from pydux import create_slice
+
+user_slice = create_slice(
+    name="user",
+    initial_state={"name": "Guest"},
+    reducers={
+        "set_name": lambda state, action: state.update(name=action.payload),
+        "reset": lambda state, action: {"name": "Guest"},
+    },
+)
+```
+
+The generated action creators are `user_slice.actions.set_name(...)` and `user_slice.actions.reset()`. Their types are `user/set_name` and `user/reset`.
+
+## Combining slices
+
+Pass a mapping of names to slices or reducer functions to `configure_store`.
+
+```python
+from pydux import configure_store
+
+store = configure_store(
+    {"counter": counter_slice, "user": user_slice},
+    devtools=False,
+)
+```
+
+Each slice reducer receives only its own branch. An action from one slice leaves other slices unchanged.
+
+## Payloads and metadata
+
+An action has a type, optional payload, and optional metadata. Generated action creators accept the payload as their first argument.
+
+```python
+action = user_slice.actions.set_name("Ada", meta={"source": "profile-form"})
+
+assert action.type == "user/set_name"
+assert action.payload == "Ada"
+assert action.meta == {"source": "profile-form"}
+```
+
+## External actions with `extra_reducers`
+
+Use `extra_reducers` for actions that belong to another feature, especially async-thunk lifecycle actions.
+
+```python
+jobs_slice = create_slice(
+    name="jobs",
+    initial_state={"status": "idle", "result": None},
+    reducers={},
+    extra_reducers={
+        "jobs/fetch/pending": lambda state, action: state.update(status="loading"),
+        "jobs/fetch/fulfilled": lambda state, action: state.update(status="done", result=action.payload),
+    },
+)
+```
+
+<Tip>
+  Keep reducer functions focused on state transitions. Put I/O, timers, and network calls in thunks or service functions, not in reducers.
+</Tip>

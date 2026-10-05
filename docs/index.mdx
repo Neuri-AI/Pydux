@@ -1,0 +1,56 @@
+---
+title: "Introduction"
+description: "Learn what PyDux is, where it fits in the Qyro ecosystem, and how state moves through an application."
+icon: "sparkles"
+---
+
+# PyDux
+
+PyDux is a Redux Toolkit-inspired state container for Python desktop applications.
+It gives an application one observable source of truth and a predictable way to
+change it: dispatch an action, let a reducer produce the next state, and update
+only the subscribers whose selected value changed.
+
+<Warning>
+  PyDux is currently in alpha. APIs, framework adapters, DevTools behavior, and
+  packaging metadata may change between releases.
+</Warning>
+
+## What PyDux provides
+
+- **Slices** that keep a state section, reducer logic, and action creators together.
+- **Selective subscriptions** through `store.select(...)` and memoized selectors.
+- **Async thunks** that model `pending`, `fulfilled`, and `rejected` work.
+- **DevTools** with action history, time travel, and a local browser inspector.
+- **UI adapters** for Qt, Tkinter, Kivy, and Qyro without a GUI dependency in the core.
+
+## How it fits with Qyro
+
+| Tool | Responsibility |
+| --- | --- |
+| PyDux | Application state and state transitions. |
+| [Qyro Runtime](https://github.com/Neuri-AI/qyro) | Application context, resources, settings, and component lifecycle. |
+| [Qyro CLI](https://github.com/Neuri-AI/qyro-cli) | Project creation, development, builds, packaging, and signing. |
+
+PyDux can be used without Qyro. Use the Qyro integration when your application
+uses Qyro components and you want lifecycle-aware subscriptions.
+
+## The data flow
+
+```text
+UI event → dispatch(action) → reducer updates state → selector changes → view updates
+```
+
+The UI does not directly mutate shared application state. It dispatches actions.
+This makes changes traceable, testable, and easy to replay in DevTools.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Install PyDux" icon="download" href="/getting-started/installation">
+    Install the core package and only the optional UI extras you need.
+  </Card>
+  <Card title="Build a counter" icon="circle-play" href="/getting-started/quickstart">
+    Create a slice, configure a store, and subscribe to a derived value.
+  </Card>
+</CardGroup>

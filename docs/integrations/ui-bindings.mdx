@@ -1,0 +1,59 @@
+---
+title: "UI bindings"
+description: "Bind selector values to Qt, Tkinter, Kivy, or framework-agnostic UI code."
+icon: "panel-top"
+---
+
+# UI bindings
+
+The PyDux core does not know about widgets. Its adapters schedule UI updates on the correct framework event loop.
+
+## `ReactiveBinding`
+
+Use `ReactiveBinding` to connect one selector to one callback. It immediately delivers the current selected value and stops after `dispose()`.
+
+```python
+from pydux.adapters.base import ReactiveBinding
+from pydux.adapters.tkinter import TkinterBridge
+
+binding = ReactiveBinding(
+    store=store,
+    selector=lambda state: state["user"]["name"],
+    target=lambda name: label.config(text=name),
+    bridge=TkinterBridge(root),
+)
+
+binding.dispose()
+```
+
+## `connect`
+
+Use `connect` to copy a selected property mapping onto a class instance.
+
+```python
+from pydux.adapters.base import connect
+
+@connect(
+    store,
+    map_state_to_props=lambda state: {
+        "name": state["user"]["name"],
+        "count": state["counter"]["value"],
+    },
+)
+class Panel:
+    def on_props_changed(self):
+        print(self.name, self.count)
+```
+
+## Main-thread bridges
+
+| Framework | Bridge | Scheduling mechanism |
+| --- | --- | --- |
+| Qt | `QtMainThreadBridge` | `QTimer.singleShot` |
+| Tkinter | `TkinterBridge(widget)` | `widget.after_idle` |
+| Kivy | `KivyBridge` | `Clock.schedule_once` |
+| Framework-agnostic/testing | `DirectThreadBridge` | Executes immediately |
+
+<Tip>
+  Choose the bridge that matches the widgets being updated. A dispatch can occur outside the UI loop—especially inside a thunk—while widget mutation must run on the framework's main thread.
+</Tip>

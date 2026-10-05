@@ -1,0 +1,45 @@
+---
+title: "configure_store"
+description: "Reference for creating a configured PyDux store."
+icon: "settings-2"
+---
+
+# `configure_store`
+
+```python
+configure_store(
+    reducer,
+    preloaded_state=None,
+    middleware=None,
+    devtools=True,
+    inspector_auto_start=True,
+    inspector_host="127.0.0.1",
+    inspector_port=8765,
+    inspector_log=True,
+) -> Store
+```
+
+Creates a store with thunk middleware. Accepts either a root reducer or a map of slice names to `Slice` instances or reducer functions.
+
+| Parameter | Description |
+| --- | --- |
+| `reducer` | Root reducer or mapping of names to reducers/slices. |
+| `preloaded_state` | Optional initial-state override. With reducer mappings, supplied keys replace the computed slice initial state. |
+| `middleware` | Additional middleware, after the built-in thunk middleware. |
+| `devtools` | `True` for built-in DevTools, a `PyDuxDevTools` instance, or `False`. |
+| `inspector_auto_start` | Starts the web inspector when DevTools are enabled. |
+| `inspector_host` | Inspector bind host. |
+| `inspector_port` | Preferred inspector port; a free port is chosen if occupied. |
+| `inspector_log` | Prints inspector startup information. |
+
+## Examples
+
+```python
+# A reducer mapping
+store = configure_store({"counter": counter_slice}, devtools=False)
+
+# A root reducer
+store = configure_store(root_reducer, preloaded_state={"counter": {"value": 0}})
+```
+
+When DevTools are enabled, the store exposes `store.devtools`. When the inspector starts successfully, it also exposes `store.inspector`.

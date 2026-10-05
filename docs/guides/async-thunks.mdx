@@ -1,0 +1,58 @@
+---
+title: "Async thunks"
+description: "Model asynchronous work with pending, fulfilled, and rejected state transitions."
+icon: "loader-circle"
+---
+
+# Async thunks
+
+`create_async_thunk(type_prefix, payload_creator)` wraps a synchronous function or coroutine and dispatches lifecycle actions around it. `configure_store(...)` installs thunk middleware automatically.
+
+## Define the state transitions
+
+```python
+from pydux import create_async_thunk, create_slice
+
+jobs_slice = create_slice(
+    name="jobs",
+    initial_state={"status": "idle", "result": None, "error": None},
+    reducers={},
+    extra_reducers={
+        "jobs/fetch/pending": lambda state, action: state.update(status="loading", error=None),
+        "jobs/fetch/fulfilled": lambda state, action: state.update(status="done", result=action.payload),
+        "jobs/fetch/rejected": lambda state, action: state.update(status="failed", error=action.payload),
+    },
+)
+
+fetch_jobs = create_async_thunk("jobs/fetch", lambda: ["build", "test", "release"])
+```
+
+## Dispatch the thunk
+
+```python
+store.dispatch(fetch_jobs())
+```
+
+| Action | When | Payload |
+| --- | --- | --- |
+| `jobs/fetch/pending` | The payload creator starts. | First thunk argument, if any. |
+| `jobs/fetch/fulfilled` | It returns successfully. | Returned value. |
+| `jobs/fetch/rejected` | It raises. | Error message. |
+
+The original exception is re-raised after the rejected action is dispatched, so callers may still handle it.
+
+## Coroutines
+
+Payload creators can be `async def` functions. PyDux resolves their awaitable result before it dispatches the fulfilled action.
+
+```python
+async def fetch_temperature(sensor_id: str) -> float:
+    return await client.read_temperature(sensor_id)
+
+fetch_temperature_thunk = create_async_thunk("telemetry/fetch", fetch_temperature)
+store.dispatch(fetch_temperature_thunk("sensor-1"))
+```
+
+<Note>
+  Thunks coordinate work and emit actions; reducers remain synchronous state transitions. This separation keeps reducer behavior deterministic and simple to test.
+</Note>

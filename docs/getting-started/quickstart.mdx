@@ -1,0 +1,72 @@
+---
+title: "Quickstart"
+description: "Create a counter slice, dispatch actions, and react to selected state."
+icon: "circle-play"
+---
+
+# Quickstart
+
+This page builds a counter without a GUI. It introduces the five ideas you need
+to start using PyDux: a **store**, **slice**, **action**, **reducer**, and
+**selector**.
+
+## 1. Define a slice
+
+A slice owns an initial state and the reducers that may change it. PyDux creates
+namespaced action creators from the reducer names.
+
+```python
+from pydux import create_slice
+
+counter_slice = create_slice(
+    name="counter",
+    initial_state={"value": 0},
+    reducers={
+        "increment": lambda state, action: state.update(value=state["value"] + 1),
+        "decrement": lambda state, action: state.update(value=state["value"] - 1),
+    },
+)
+```
+
+`counter_slice.actions.increment()` now returns an action whose type is
+`counter/increment`.
+
+## 2. Configure the store
+
+```python
+from pydux import configure_store
+
+store = configure_store({"counter": counter_slice}, devtools=False)
+print(store.get_state())  # {"counter": {"value": 0}}
+```
+
+Pass `devtools=True` when you want dispatch history and the local inspector.
+
+## 3. Select a value and dispatch actions
+
+```python
+from pydux import create_selector
+
+select_value = lambda state: state["counter"]["value"]
+select_label = create_selector(select_value, lambda value: f"Count = {value}")
+
+unsubscribe = store.select(select_label, lambda label: print(label), fire_immediately=True)
+store.dispatch(counter_slice.actions.increment())
+store.dispatch(counter_slice.actions.increment())
+store.dispatch(counter_slice.actions.decrement())
+unsubscribe()
+```
+
+The listener is called immediately with `Count = 0`, then only after an action
+changes the selector result.
+
+## What happens after a click?
+
+1. A UI event dispatches `counter_slice.actions.increment()`.
+2. The `counter` reducer receives an isolated draft of its slice state.
+3. The store saves the reducer result.
+4. PyDux reruns subscriptions.
+5. Only a subscription whose selected value changed receives a callback.
+
+Continue with [stores and slices](/concepts/store-and-slices), or connect this
+pattern to a Qyro component in [Qyro integration](/integrations/qyro).

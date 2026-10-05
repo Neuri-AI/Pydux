@@ -1,0 +1,47 @@
+---
+title: "API reference"
+description: "Quick reference for PyDux public APIs."
+icon: "braces"
+---
+
+# API reference
+
+## Store
+
+| Method | Description |
+| --- | --- |
+| `get_state()` | Returns current root state. |
+| `dispatch(action_or_thunk)` | Dispatches an `Action`, or a callable when thunk middleware is installed. |
+| `select(selector, listener, equality_fn=None, fire_immediately=False)` | Subscribes to selected state; returns `unsubscribe()`. |
+| `subscribe(listener)` | Subscribes to every dispatch. Prefer `select` for views. |
+
+## Slices and selectors
+
+| API | Description |
+| --- | --- |
+| `create_slice(name, initial_state, reducers, extra_reducers=None)` | Creates a `Slice` with generated action creators. |
+| `combine_reducers(reducers_dict)` | Combines slice reducers into one root reducer. |
+| `create_selector(*inputs, combiner)` | Creates a memoized derived selector. |
+| `is_identical(a, b)` | Identity comparison. |
+| `shallow_equal(a, b)` | Top-level container comparison. |
+| `deep_equal(a, b)` | Recursive equality comparison. |
+
+## Async and DevTools
+
+| API | Description |
+| --- | --- |
+| `create_async_thunk(type_prefix, payload_creator)` | Creates a thunk that emits lifecycle actions. |
+| `create_thunk_middleware(extra_argument=None)` | Creates thunk middleware; `configure_store` already adds it. |
+| `PyDuxDevTools(max_history=100)` | Creates a trace recorder with time travel. |
+| `start_inspector(store, host, port, auto_reassign_port, log_startup)` | Starts or returns the inspector for a DevTools-enabled store. |
+
+## UI integrations
+
+| API | Description |
+| --- | --- |
+| `ReactiveBinding(store, selector, target, equality_fn=None, bridge=None)` | Sends selected values to a UI callback. |
+| `connect(store, map_state_to_props=None, bridge=None)` | Decorates a class with selected state properties. |
+| `Reactive` | Qyro mixin with lifecycle-aware `bind_selector(...)`. |
+| `connect_qyro(store, selectors)` | Maps multiple selectors to Qyro component attributes. |
+
+For behavior and examples, follow the linked guides in the navigation rather than treating this page as a replacement for them.

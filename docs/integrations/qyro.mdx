@@ -1,0 +1,90 @@
+---
+title: "Qyro integration"
+description: "Use PyDux state with Qyro component lifecycle hooks."
+icon: "component"
+---
+
+# Qyro integration
+
+Qyro provides the application lifecycle; PyDux provides state. The `Reactive` mixin connects the two by tracking subscriptions and releasing them when the component unmounts.
+
+## Install the stack
+
+```bash
+pip install "pydux[qyro,pyside6]"
+```
+
+Or let Qyro CLI create a project with PyDux included:
+
+```bash
+qyro init --name my-app --binding PySide6 --addon pydux
+```
+
+## Create the store
+
+```python store.py
+from pydux import configure_store, create_selector, create_slice
+
+counter_slice = create_slice(
+    name="counter",
+    initial_state={"value": 0},
+    reducers={"increment": lambda state, action: state.update(value=state["value"] + 1)},
+)
+
+store = configure_store({"counter": counter_slice}, devtools=True)
+select_label = create_selector(
+    lambda state: state["counter"]["value"],
+    lambda value: f"Count = {value}",
+)
+```
+
+## Bind state in a component
+
+Subscribe in `component_will_mount`. Qyro creates widgets later in `render`, so the adapter defers the first callback to the next UI tick.
+
+```python main.py
+import sys
+from PySide6.QtWidgets import QLabel, QMainWindow, QPushButton, QVBoxLayout, QWidget
+from qyro import ApplicationContext
+from qyro.ui.component import Component
+from pydux.adapters.qyro import Reactive
+from store import counter_slice, select_label, store
+
+
+class App(QMainWindow, Component, Reactive, ApplicationContext):
+    def component_will_mount(self):
+        self.resize(320, 180)
+        self.bind_selector(store, select_label, self._set_label)
+
+    def render(self):
+        container = QWidget(self)
+        layout = QVBoxLayout(container)
+        self._label = QLabel(parent=container)
+        button = QPushButton("+1", parent=container)
+        button.clicked.connect(lambda: store.dispatch(counter_slice.actions.increment()))
+        layout.addWidget(self._label)
+        layout.addWidget(button)
+        self.setCentralWidget(container)
+
+    def _set_label(self, text: str):
+        self._label.setText(text)
+
+
+window = App()
+window.show()
+sys.exit(window.run())
+```
+
+## Bind multiple values with `connect_qyro`
+
+```python
+from pydux.adapters.qyro import connect_qyro
+
+@connect_qyro(store, {"label": select_label, "count": lambda state: state["counter"]["value"]})
+class StatusPanel:
+    def on_state_change(self, props: dict):
+        # self.label and self.count are current.
+        pass
+```
+
+`connect_qyro` cleans up every subscription from `component_will_unmount`.

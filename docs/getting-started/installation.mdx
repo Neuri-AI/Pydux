@@ -1,0 +1,63 @@
+---
+title: "Installation"
+description: "Install PyDux, optional framework integrations, and the local documentation preview."
+icon: "download"
+---
+
+# Installation
+
+PyDux supports Python `>=3.10,<3.16`. The core uses only the standard library;
+framework packages are optional extras.
+
+## Core package
+
+<CodeGroup>
+```bash pip
+pip install pydux
+```
+
+```bash Poetry
+poetry add pydux
+```
+</CodeGroup>
+
+For a local checkout, install in editable mode:
+
+```bash
+pip install -e .
+```
+
+## Framework extras
+
+Install only the stack used by the application.
+
+| Integration | pip | Poetry |
+| --- | --- | --- |
+| PySide6 | `pip install "pydux[pyside6]"` | `poetry add pydux -E pyside6` |
+| PyQt6 | `pip install "pydux[pyqt6]"` | `poetry add pydux -E pyqt6` |
+| PySide2 | `pip install "pydux[pyside2]"` | `poetry add pydux -E pyside2` |
+| PyQt5 | `pip install "pydux[pyqt5]"` | `poetry add pydux -E pyqt5` |
+| Kivy | `pip install "pydux[kivy]"` | `poetry add pydux -E kivy` |
+| Qyro + PySide6 | `pip install "pydux[qyro,pyside6]"` | `poetry add pydux -E qyro -E pyside6` |
+
+Tkinter ships with most CPython distributions and requires no PyDux extra.
+
+<Note>
+  `pydux[all]` installs every optional integration. It is useful for development
+  and compatibility testing, but applications should normally install only their
+  selected UI framework.
+</Note>
+
+## Preview these docs locally
+
+This directory is a Mintlify documentation root. Install the Mintlify CLI, then
+run it from `docs/`:
+
+```bash
+npm install -g mint
+cd docs
+mint dev
+```
+
+Mintlify will serve a local preview and validate the `docs.json` navigation and
+MDX pages as you edit them.

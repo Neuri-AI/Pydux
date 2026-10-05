@@ -1,0 +1,67 @@
+---
+title: "Selectors and subscriptions"
+description: "Derive state efficiently and update views only when their selected values change."
+icon: "filter"
+---
+
+# Selectors and subscriptions
+
+A selector is a function from the complete state to the value a consumer needs.
+
+```python
+select_user_name = lambda state: state["user"]["name"]
+```
+
+Subscribe with `store.select(...)`. It returns an `unsubscribe` function.
+
+```python
+unsubscribe = store.select(
+    selector=select_user_name,
+    listener=lambda name: label.setText(name),
+    fire_immediately=True,
+)
+unsubscribe()
+```
+
+## Derived and memoized selectors
+
+`create_selector` composes input selectors and caches the previous computation.
+
+```python
+from pydux import create_selector
+
+select_first_name = lambda state: state["user"]["first_name"]
+select_last_name = lambda state: state["user"]["last_name"]
+
+select_full_name = create_selector(
+    select_first_name,
+    select_last_name,
+    lambda first, last: f"{first} {last}",
+)
+```
+
+If the selected inputs are unchanged, the combiner is not run again.
+
+## Equality functions
+
+`store.select` uses `shallow_equal` by default. Supply an equality function when your selector creates a container or when identity is the correct contract.
+
+| Helper | Use when |
+| --- | --- |
+| `is_identical` | The exact same object instance signals no change. |
+| `shallow_equal` | Top-level values of dicts, lists, or tuples should be compared. |
+| `deep_equal` | Nested structural equality is needed; use sparingly. |
+
+```python
+from pydux import shallow_equal
+
+store.select(
+    lambda state: {"name": state["user"]["name"], "count": state["counter"]["value"]},
+    update_header,
+    equality_fn=shallow_equal,
+)
+```
+
+<Warning>
+  Do not mutate the object returned by `store.get_state()`. Reducers should be the only code that changes shared state.
+</Warning>
