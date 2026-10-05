@@ -29,3 +29,9 @@ El inspector muestra acciones, payloads, diferencias de estado e historial en ti
 <Warning>
   DevTools conserva snapshots y calcula diferencias en cada dispatch. Desactívalo en rutas sensibles a rendimiento si no lo necesitas.
 </Warning>
+
+## Trazas, límites y control manual
+
+Cada `ActionTrace` incluye `index`, `action`, `prev_state`, `next_state`, `timestamp`, `duration_ms` y `changed_paths`. `PyDuxDevTools(max_history=100)` limita el historial; al superar el límite descarta la traza más antigua. Las acciones internas de viaje en el tiempo no añaden una nueva traza.
+
+Para controlar el servidor manualmente, crea el store con `inspector_auto_start=False` y usa `start_inspector(store, host="127.0.0.1", port=9900)`. El resultado expone `host`, `port`, `base_url`, `start()` y `stop()`. Si el store no tiene DevTools, `start_inspector` lanza `ValueError`.

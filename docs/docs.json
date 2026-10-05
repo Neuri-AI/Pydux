@@ -3,13 +3,13 @@
   "theme": "sequoia",
   "name": "PyDux",
   "description": "Redux Toolkit-inspired state management for Python desktop applications.",
-  "logo": "https://ik.imagekit.io/kummiktgaiq/ppg/Qyro-logo.svg?updatedAt=1755215983279",
+  "logo": "https://ik.imagekit.io/kummiktgaiq/ppg/pydux%20logo_zaTngCF4T.svg?updatedAt=1755215983279",
   "colors": {
     "primary": "#8B5CF6",
     "light": "#A78BFA",
     "dark": "#7C3AED"
   },
-  "favicon": "https://ik.imagekit.io/kummiktgaiq/ppg/Qyro-logo.svg?updatedAt=1755215983279",
+  "favicon": "https://ik.imagekit.io/kummiktgaiq/ppg/symbol_-d7ppt0k0.svg",
   "appearance": {
     "default": "system"
   },

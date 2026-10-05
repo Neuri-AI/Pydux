@@ -29,3 +29,7 @@ binding.dispose()
 | Tkinter | `TkinterBridge(widget)` con `after_idle`. |
 | Kivy | `KivyBridge` con `Clock.schedule_once`. |
 | Pruebas | `DirectThreadBridge` ejecuta de inmediato. |
+
+`ReactiveBinding(store, selector, target, equality_fn=None, bridge=None)` se suscribe con `fire_immediately=True`. Su callback no toca la UI directamente: llama `bridge.schedule_on_main_thread(lambda: target(value))`. Llama `dispose()` al destruir el consumidor para cancelar esa suscripción.
+
+`connect(store, map_state_to_props=None, bridge=None)` es un decorador de clase. Al construir la instancia, ejecuta `map_state_to_props(state)`, asigna cada entrada como atributo y llama `on_props_changed()` si existe. Sus unsubscribers se guardan en `_pydux_unsubscribers`; el decorador no añade una destrucción automática, por lo que un componente no-Qyro debe administrar su ciclo de vida.

@@ -88,3 +88,33 @@ class StatusPanel:
 ```
 
 `connect_qyro` cleans up every subscription from `component_will_unmount`.
+
+## Props and PyDux state are different
+
+Qyro `Component` accepts both a `props` dictionary and shortcut keyword props. `parent` is reserved for the underlying Qt widget; all other keyword arguments become `self.props`.
+
+```python
+StatusPanel(parent=self, title="Telemetry", refresh_seconds=5)
+# Equivalent to:
+StatusPanel(parent=self, props={"title": "Telemetry", "refresh_seconds": 5})
+```
+
+Use props for values supplied by a parent when constructing a component. Use PyDux selectors for shared state that can change after construction. They can work together:
+
+```python
+class StatusPanel(QWidget, Component, Reactive):
+    def component_will_mount(self):
+        self.bind_selector(store, select_status, self._set_status)
+
+    def render(self):
+        self._label = QLabel(self.props.get("title", "Status"), parent=self)
+
+    def _set_status(self, status):
+        self._label.setText(f"{self.props['title']}: {status}")
+```
+
+## Lifecycle and cleanup details
+
+`Reactive.bind_selector(store, selector, on_change, equality_fn=None)` returns the unsubscriber it creates. The callback is intentionally deferred: it is safe to call `bind_selector` in `component_will_mount`, before `render` creates widgets. When `component_will_unmount` runs, `Reactive` invokes every tracked unsubscriber and then forwards the hook through the normal method-resolution order.
+
+`connect_qyro` wraps both `component_will_mount` and `component_will_unmount`. It invokes the original hooks when they exist. Its `on_state_change` argument is a copy of the currently connected values; individual selector callbacks may occur independently, so the first callback can contain only the values delivered so far.

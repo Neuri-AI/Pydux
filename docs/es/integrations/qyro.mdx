@@ -42,3 +42,33 @@ class StatusPanel:
 ```
 
 La guía completa está en [PyDux + Qyro para principiantes](/es/getting-started/qyro-for-beginners).
+
+## Props y estado PyDux no son lo mismo
+
+`Component` de Qyro acepta un diccionario `props` y también props como argumentos keyword. `parent` se reserva para el widget Qt subyacente; cualquier otro keyword se guarda en `self.props`.
+
+```python
+StatusPanel(parent=self, title="Telemetría", refresh_seconds=5)
+# Equivale a:
+StatusPanel(parent=self, props={"title": "Telemetría", "refresh_seconds": 5})
+```
+
+Usa props para valores que entrega el padre al construir el componente. Usa selectores PyDux para estado compartido que puede cambiar después. Ambos se pueden combinar:
+
+```python
+class StatusPanel(QWidget, Component, Reactive):
+    def component_will_mount(self):
+        self.bind_selector(store, select_status, self._set_status)
+
+    def render(self):
+        self._label = QLabel(self.props.get("title", "Estado"), parent=self)
+
+    def _set_status(self, status):
+        self._label.setText(f"{self.props['title']}: {status}")
+```
+
+## Ciclo de vida y limpieza
+
+`Reactive.bind_selector(store, selector, on_change, equality_fn=None)` devuelve la función para cancelar la suscripción. El primer callback se difiere intencionalmente al siguiente tick de UI: puedes suscribirte en `component_will_mount` aunque `render` aún no haya creado widgets. Al ejecutarse `component_will_unmount`, `Reactive` llama cada unsubscriber registrado y continúa la cadena normal de herencia.
+
+`connect_qyro` envuelve tanto `component_will_mount` como `component_will_unmount` y llama los hooks originales si existen. `on_state_change` recibe una copia de los valores conectados hasta ese momento; como cada selector puede llegar por separado, el primer callback puede contener un subconjunto de props.

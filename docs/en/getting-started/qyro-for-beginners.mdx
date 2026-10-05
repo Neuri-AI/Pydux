@@ -1,44 +1,71 @@
 ---
-title: "PyDux + Qyro for beginners"
-description: "Build a desktop application with shared state, step by step, starting from zero."
+title: "PyDux + Qyro for Beginners"
+description: "Build a desktop application with shared state, from scratch and step by step."
 icon: "graduation-cap"
 ---
 
-# PyDux + Qyro for beginners
+# PyDux + Qyro for Beginners
 
-This guide assumes no prior Qyro or PyDux experience. Levels 0–4 are enough to build a complete application; return to the advanced levels when you need them.
+This guide assumes you know nothing about Qyro or PyDux. Each level builds on the previous one, but you can stop after level 4: by then, you'll already have a functional application.
 
 <Warning>
-  Qyro and PyDux are in alpha. APIs may change between releases.
+  Qyro and PyDux are in alpha. Their APIs may change between versions.
 </Warning>
 
-| Level | You will learn |
+## Guide map
+
+| Level | You'll learn |
 | --- | --- |
-| 0 | What Qyro and PyDux do. |
-| 1 | How to create a Qyro project. |
-| 2 | Qyro component lifecycle. |
-| 3 | Your first PyDux store. |
-| 4 | A complete PyDux + Qyro counter. |
-| 5–8 | Selectors, thunks, DevTools, and `connect_qyro`. |
-| 9 | Common mistakes and a checklist. |
+| 0 | What problem each project solves. |
+| 1 | Create and run a Qyro application. |
+| 2 | The component lifecycle. |
+| 3 | Create your first store with PyDux. |
+| 4 | Connect PyDux and Qyro in a complete application. |
+| 5 | Payloads, multiple slices, and derived selectors. |
+| 6 | Asynchronous work with thunks. |
+| 7 | DevTools and time travel. |
+| 8 | Connect multiple values with `connect_qyro`. |
+| 9 | Common errors and checklist. |
 
-## Level 0: the mental model
+---
 
-Qyro is the application shell: settings, resources, and component lifecycle. PyDux is shared application memory. UI events dispatch actions; reducers update state; selectors notify only the views whose data changed.
+## Level 0: what each piece is
+
+**Qyro** is the skeleton of a desktop application: it provides application context, settings, resources, and a component lifecycle.
+
+**PyDux** is the application's central memory. Think of it as a shared whiteboard:
+
+- All state lives in one place: the **store**.
+- The interface does not write directly to the whiteboard; it sends an **action**.
+- A **reducer** applies the change rule.
+- A **selector** extracts the data a widget needs.
+- PyDux notifies the widget only if that data changed.
 
 ```text
-Button click → dispatch(action) → reducer updates state → selector changes → widget updates
+Button click → dispatch(action) → reducer updates state
+                                      │
+Updated widget ← selector changed ←───┘
 ```
 
-| Term | Meaning |
+| Word | Meaning |
 | --- | --- |
-| Store | The complete shared state. |
-| Slice | A named section of state, such as `counter`. |
-| Action | A description of an event, such as `counter/increment`. |
-| Reducer | A rule that calculates the next state. |
-| Selector | A function that reads a value from state. |
+| Store | The complete whiteboard that holds the state. |
+| Slice | A named section within the whiteboard, for example `counter`. |
+| Action | A note describing what happened, for example `counter/increment`. |
+| Reducer | The rule that determines the next state. |
+| Selector | A function that retrieves a value from the state. |
+| Dispatch | Send an action to the store. |
 
-## Level 1: create a project
+---
+
+## Level 1: create a Qyro application
+
+Qyro has two distinct pieces:
+
+- **Qyro CLI** creates and manages projects: `init`, `start`, `build`, and `bundle`.
+- **Qyro Runtime** runs inside your app: `ApplicationContext`, `Component`, resources, and settings.
+
+Install the CLI and create a project that already includes PyDux:
 
 ```bash
 pip install "qyro-cli[desktop]"
@@ -47,23 +74,111 @@ cd my-app
 qyro start
 ```
 
-Qyro CLI scaffolds and packages projects. Qyro Runtime runs inside the application. The binding may be PySide6, PyQt6, PyQt5, PySide2, Kivy, or Tkinter.
+`--binding` can be `PySide6`, `PyQt6`, `PyQt5`, `PySide2`, `Kivy`, or `Tkinter`. If you omit the options, the CLI opens an interactive wizard.
 
-## Level 2: lifecycle
+<Note>
+  Qyro CLI creates and packages projects; Qyro Runtime is the code that runs inside the application.
+</Note>
 
-Use `component_will_mount()` to prepare subscriptions, then create widgets in `render()`. Do not use widgets before `render()` because they do not exist yet.
+---
 
-| Hook | Purpose |
-| --- | --- |
-| `component_will_mount()` | Prepare state and subscriptions. |
-| `render()` | Create widgets and layouts. |
-| `component_did_mount()` | Run work after rendering. |
-| `component_will_unmount()` | Release resources and subscriptions. |
+## Level 2: understand the lifecycle
 
-## Level 3: create a store
+Qyro calls hooks in this order:
+
+| Order | Hook | Purpose |
+| --- | --- | --- |
+| 1 | `component_will_mount()` | Prepare size, state, and subscriptions. |
+| 2 | `render()` | Create widgets and layouts. |
+| 3 | `component_did_mount()` | Run work after rendering. |
+| 4 | `set_styles()` | Apply styles. |
+| 5 | `on_resize()` | React to a size change. |
+
+Golden rule: do not try to modify widgets in `component_will_mount()`, because they do not exist yet. Create everything in `render()`.
 
 ```python
-from pydux import configure_store, create_slice
+import sys
+from PySide6.QtWidgets import QLabel, QMainWindow
+from qyro import ApplicationContext
+from qyro.ui.component import Component
+
+
+class MyWindow(QMainWindow, Component, ApplicationContext):
+    def component_will_mount(self):
+        self.resize(640, 480)
+
+    def render(self):
+        label = QLabel(f"App: {self.window_title}", parent=self)
+        label.move(24, 24)
+
+
+window = MyWindow()
+window.show()
+sys.exit(window.run())
+```
+
+---
+
+## Level 3: create your first store
+
+### 1. Define a slice
+
+A slice groups a name, initial state, and change rules. Reducers receive a draft of the state and can modify it directly.
+
+```python
+from pydux import create_slice
+
+counter_slice = create_slice(
+    name="counter",
+    initial_state={"value": 0},
+    reducers={
+        "increment": lambda state, action: state.update(value=state["value"] + 1),
+        "decrement": lambda state, action: state.update(value=state["value"] - 1),
+    },
+)
+```
+
+PyDux generates `counter_slice.actions.increment()` and `counter_slice.actions.decrement()`. You do not need to write the actions manually.
+
+### 2. Create the store and dispatch actions
+
+```python
+from pydux import configure_store
+
+store = configure_store({"counter": counter_slice}, devtools=True)
+
+print(store.get_state())  # {"counter": {"value": 0}}
+store.dispatch(counter_slice.actions.increment())
+store.dispatch(counter_slice.actions.increment())
+store.dispatch(counter_slice.actions.decrement())
+print(store.get_state())  # {"counter": {"value": 1}}
+```
+
+### 3. Listen to a value with a selector
+
+```python
+select_value = lambda state: state["counter"]["value"]
+
+unsubscribe = store.select(
+    select_value,
+    lambda value: print("new value:", value),
+    fire_immediately=True,
+)
+
+store.dispatch(counter_slice.actions.increment())
+unsubscribe()
+```
+
+`fire_immediately=True` provides the current value when you subscribe. Always keep the `unsubscribe` function if the subscription is not managed by a Qyro component.
+
+---
+
+## Level 4: connect PyDux with Qyro
+
+Keep the store separate from the interface. Create `store.py`:
+
+```python store.py
+from pydux import configure_store, create_selector, create_slice
 
 counter_slice = create_slice(
     name="counter",
@@ -75,57 +190,185 @@ counter_slice = create_slice(
 )
 
 store = configure_store({"counter": counter_slice}, devtools=True)
-store.dispatch(counter_slice.actions.increment())
+select_label = create_selector(
+    lambda state: state["counter"]["value"],
+    lambda value: f"Counter = {value}",
+)
 ```
 
-Subscribe to a selected value rather than manually refreshing every widget:
+Then create `main.py`:
 
-```python
-select_value = lambda state: state["counter"]["value"]
-unsubscribe = store.select(select_value, print, fire_immediately=True)
-```
-
-## Level 4: connect it to Qyro
-
-Create your store in `store.py`, then bind it during `component_will_mount`.
-
-```python
+```python main.py
+import sys
+from PySide6.QtWidgets import QLabel, QMainWindow, QPushButton, QVBoxLayout, QWidget
+from qyro import ApplicationContext
+from qyro.ui.component import Component
 from pydux.adapters.qyro import Reactive
+from store import counter_slice, select_label, store
+
 
 class App(QMainWindow, Component, Reactive, ApplicationContext):
     def component_will_mount(self):
-        self.bind_selector(store, select_label, self._set_label)
+        self.resize(320, 200)
+        self.bind_selector(store, select_label, self._on_label_change)
 
     def render(self):
-        self._label = QLabel(parent=self)
-        button = QPushButton("+1", parent=self)
-        button.clicked.connect(lambda: store.dispatch(counter_slice.actions.increment()))
+        central = QWidget(self)
+        layout = QVBoxLayout(central)
+        self._label = QLabel("...", parent=central)
+        plus = QPushButton("+1", parent=central)
+        minus = QPushButton("-1", parent=central)
+        plus.clicked.connect(lambda: store.dispatch(counter_slice.actions.increment()))
+        minus.clicked.connect(lambda: store.dispatch(counter_slice.actions.decrement()))
+        layout.addWidget(self._label)
+        layout.addWidget(plus)
+        layout.addWidget(minus)
+        self.setCentralWidget(central)
 
-    def _set_label(self, text):
+    def _on_label_change(self, text: str):
         self._label.setText(text)
+
+
+window = App()
+window.show()
+sys.exit(window.run())
 ```
 
-`Reactive` defers the first value until the next UI tick, after `render()` creates the widgets, and releases tracked subscriptions when the component unmounts.
+The first value is delivered after `render()` on the next UI tick; therefore, the `QLabel` already exists when `_on_label_change` uses it. `Reactive` releases subscriptions when the component unmounts.
 
-## Levels 5–8: grow the application
+---
 
-- Add data to actions with `slice.actions.add(payload)`.
-- Combine slices with `configure_store({"counter": counter_slice, "user": user_slice})`.
-- Build memoized values with `create_selector(...)`.
-- Use `create_async_thunk(...)` for work that may succeed or fail.
-- Enable `devtools=True` to inspect history and time travel.
-- Use `connect_qyro(store, selectors)` when one component needs several selected values.
+## Level 5: payloads, multiple slices, and derived selectors
 
-Follow [selectors](/en/concepts/selectors), [async thunks](/en/guides/async-thunks), [DevTools](/en/guides/devtools), and [Qyro integration](/en/integrations/qyro) for each topic.
+Actions can carry information in `action.payload`:
 
-## Level 9: common mistakes
+```python
+counter_slice = create_slice(
+    name="counter",
+    initial_state={"value": 0},
+    reducers={
+        "add": lambda state, action: state.update(value=state["value"] + action.payload),
+    },
+)
 
-| Situation | Fix |
+store.dispatch(counter_slice.actions.add(5))
+```
+
+A store can have many slices:
+
+```python
+user_slice = create_slice(
+    name="user",
+    initial_state={"name": "Guest"},
+    reducers={"set_name": lambda state, action: state.update(name=action.payload)},
+)
+
+store = configure_store({"counter": counter_slice, "user": user_slice})
+```
+
+To combine values, use `create_selector`:
+
+```python
+from pydux import create_selector
+
+select_name = lambda state: state["user"]["name"]
+select_value = lambda state: state["counter"]["value"]
+select_summary = create_selector(
+    select_name,
+    select_value,
+    lambda name, value: f"{name} has {value} clicks",
+)
+```
+
+Read [selectors and subscriptions](/es/concepts/selectors) to compare composite values with `shallow_equal` or `deep_equal`.
+
+---
+
+## Level 6: asynchronous work with thunks
+
+A thunk generates three actions: `pending`, `fulfilled`, and `rejected`.
+
+```python
+from pydux import create_async_thunk, create_slice
+
+jobs_slice = create_slice(
+    name="jobs",
+    initial_state={"status": "idle", "result": None, "error": None},
+    reducers={},
+    extra_reducers={
+        "jobs/fetch/pending": lambda state, action: state.update(status="loading", error=None),
+        "jobs/fetch/fulfilled": lambda state, action: state.update(status="ok", result=action.payload),
+        "jobs/fetch/rejected": lambda state, action: state.update(status="error", error=action.payload),
+    },
+)
+
+fetch_jobs = create_async_thunk("jobs/fetch", lambda: ["compile", "test", "release"])
+store.dispatch(fetch_jobs())
+```
+
+See [asynchronous thunks](/es/guides/async-thunks) for `async def` functions, errors, and loading-state design.
+
+---
+
+## Level 7: DevTools and inspector
+
+With `devtools=True`, PyDux records every dispatch and opens a local inspector.
+
+```python
+store = configure_store({"counter": counter_slice}, devtools=True)
+print(store.inspector.base_url)
+
+store.devtools.undo()
+store.devtools.redo()
+store.devtools.jump_to_state(0)
+```
+
+Open the URL in your browser to view actions, payloads, state differences, and history. The inspector uses `127.0.0.1:8765` by default; if it is busy, PyDux chooses another port.
+
+---
+
+## Level 8: connect multiple values with `connect_qyro`
+
+If a component needs multiple selectors, the decorator assigns them as attributes and optionally calls `on_state_change`.
+
+```python
+from pydux.adapters.qyro import connect_qyro
+
+@connect_qyro(
+    store,
+    {
+        "label": select_label,
+        "count": lambda state: state["counter"]["value"],
+    },
+)
+class StatusPanel:
+    def on_state_change(self, props: dict):
+        print(props)
+```
+
+When the component unmounts, `connect_qyro` cancels all of its subscriptions.
+
+---
+
+## Level 9: common errors and checklist
+
+| Situation | What to do |
 | --- | --- |
-| A widget does not exist when a callback runs | Subscribe in `component_will_mount`; create widgets in `render`. |
-| The UI does not update | Verify the selector path and dispatched action. |
-| A closed component still receives updates | Use `Reactive.bind_selector` or call `unsubscribe()`. |
-| A slow operation freezes the UI | Keep it out of reducers; use a thunk or service. |
+| The widget does not exist when the first value arrives | Subscribe in `component_will_mount`; create widgets in `render`. |
+| A change does not update the interface | Check that the selector reads the correct key and that the action was dispatched. |
+| The component keeps receiving changes after it closes | Use `Reactive.bind_selector` or keep and call `unsubscribe()`. |
+| A selector returns a new dict/list | Pass `shallow_equal` or `deep_equal` to `store.select`. |
+| A slow task blocks the interface | Move the work to a thunk or asynchronous service; do not put it in a reducer. |
 | You do not know what changed | Enable `devtools=True` and open the inspector. |
 
-Before moving on, check that state changes only through `store.dispatch(...)`, reducers do no I/O, and every UI consumer subscribes to a selector.
+Before continuing, confirm the following:
+
+- Your state is modified only through `store.dispatch(...)`.
+- Each slice has a clear responsibility.
+- The UI subscribes with selectors instead of synchronizing values manually.
+- Reducers do not perform I/O or slow work.
+- Subscriptions are canceled when the consumer is destroyed.
+
+<Tip>
+  You now have the fundamentals. From here, refer to the concept pages and guides when a real need comes up in your application; there is no need to memorize the entire API.
+</Tip>

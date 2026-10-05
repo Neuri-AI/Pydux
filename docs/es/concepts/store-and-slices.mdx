@@ -39,6 +39,23 @@ store = configure_store({"counter": counter_slice, "user": user_slice}, devtools
 
 Las acciones pueden transportar datos en `action.payload` y metadatos mediante `meta={...}`. Usa `extra_reducers` para responder a acciones externas, como el ciclo de vida de un thunk.
 
+### Contrato de los reducers
+
+PyDux copia profundamente el estado del slice antes de llamar un reducer. Si el reducer retorna `None`, conserva el borrador mutado; si retorna cualquier otro valor, ese valor reemplaza por completo al estado del slice. Las acciones cuyo tipo no pertenece al slice regresan exactamente el objeto de estado recibido, por lo que las ramas no afectadas no se vuelven a renderizar.
+
+```python
+profile_slice = create_slice(
+    name="profile",
+    initial_state={"name": "Guest", "roles": []},
+    reducers={
+        "rename": lambda state, action: state.update(name=action.payload),
+        "sign_out": lambda state, action: {"name": "Guest", "roles": []},
+    },
+)
+```
+
+`extra_reducers` usa el tipo completo, no el nombre corto. Es apropiado para acciones como `jobs/fetch/fulfilled` que pertenecen conceptualmente a otro feature.
+
 <Tip>
   Los reducers deben limitarse a transiciones de estado: no pongas I/O, red ni tareas lentas dentro de ellos.
 </Tip>

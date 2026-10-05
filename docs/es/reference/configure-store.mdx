@@ -33,3 +33,11 @@ Crea un store con middleware de thunks. Acepta un reducer raíz o un mapa de nom
 ```python
 store = configure_store({"counter": counter_slice}, devtools=False)
 ```
+
+## Estado inicial y middleware
+
+Cuando `reducer` es un diccionario, PyDux ejecuta cada reducer con `Action(type="@@PYDUX/INIT")` para obtener el estado inicial. `preloaded_state` reemplaza las claves proporcionadas, sin eliminar los defaults de los otros slices.
+
+El orden efectivo es: middleware de thunks, los middlewares personalizados en el orden entregado y, si está activo, middleware de DevTools antes del reducer interno. Los middlewares reciben `(store, next_dispatch)` y devuelven una función que recibe la acción.
+
+Si pasas un reducer raíz en vez de un mapa, debes manejar su inicialización cuando reciba `state=None`. `combine_reducers(...)` se exporta si necesitas componer reducers fuera de `configure_store`.

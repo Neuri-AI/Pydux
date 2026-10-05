@@ -32,3 +32,11 @@ select_full_name = create_selector(
 | `deep_equal` | Necesitas igualdad estructural anidada. |
 
 No modifiques el resultado de `store.get_state()`; los reducers son la única vía para cambiar estado compartido.
+
+## Detalles de suscripción
+
+`store.select(selector, listener, equality_fn=None, fire_immediately=False)` evalúa el selector al registrarse y devuelve `unsubscribe()`. Con `fire_immediately=True` entrega ese primer valor de inmediato. Después de cada dispatch, PyDux compara el valor anterior con el nuevo y llama al listener sólo si el comparador devuelve `False`.
+
+`store.subscribe(listener)` es una suscripción al estado completo y recibe una llamada después de todo dispatch, incluso si el reducer devolvió el mismo estado. Para widgets, prefiere siempre `select`.
+
+Un error en un listener se registra y se aísla: no deshace ni cancela la transición de estado. También puedes llamar `unsubscribe()` más de una vez sin error.

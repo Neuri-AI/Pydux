@@ -33,3 +33,17 @@ store.dispatch(fetch_jobs())
 | `rejected` | La función lanza un error. |
 
 El error original se vuelve a lanzar después de despachar `rejected`, por lo que el llamador puede manejarlo.
+
+## Argumentos, coroutines y middleware
+
+El primer argumento posicional del thunk se convierte en el payload de `pending`; también puedes pasar `arg=`. El payload creator recibe todos los `*args` y `**kwargs` originales. Si retorna un awaitable, PyDux lo resuelve antes de despachar `fulfilled`.
+
+```python
+async def fetch_temperature(sensor_id: str) -> float:
+    return await client.read_temperature(sensor_id)
+
+fetch_temperature_thunk = create_async_thunk("telemetry/fetch", fetch_temperature)
+store.dispatch(fetch_temperature_thunk("sensor-1"))
+```
+
+El middleware invoca un thunk como `thunk(dispatch, get_state, extra_argument)`. `configure_store` ya instala este middleware; sólo usa `create_thunk_middleware(extra_argument=...)` si construyes un `Store` manualmente.
