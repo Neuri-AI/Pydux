@@ -1,0 +1,37 @@
+---
+title: "Instalación"
+description: "Instala PyDux y los extras opcionales para tu framework."
+icon: "download"
+---
+
+# Instalación
+
+PyDux soporta Python `>=3.10,<3.16`. El núcleo no requiere dependencias de terceros; los frameworks se instalan como extras.
+
+<CodeGroup>
+```bash pip
+pip install pydux
+```
+
+```bash Poetry
+poetry add pydux
+```
+</CodeGroup>
+
+| Integración | pip |
+| --- | --- |
+| PySide6 | `pip install "pydux[pyside6]"` |
+| PyQt6 | `pip install "pydux[pyqt6]"` |
+| PyQt5 | `pip install "pydux[pyqt5]"` |
+| Kivy | `pip install "pydux[kivy]"` |
+| Qyro + PySide6 | `pip install "pydux[qyro,pyside6]"` |
+
+Tkinter normalmente ya viene con CPython. Para un checkout local, usa `pip install -e .`.
+
+## Vista previa de la documentación
+
+```bash
+npm install -g mint
+cd docs
+mint dev
+```

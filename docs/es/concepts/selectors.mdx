@@ -1,0 +1,34 @@
+---
+title: "Selectores y suscripciones"
+description: "Deriva estado y actualiza una vista sólo cuando cambia el valor que necesita."
+icon: "filter"
+---
+
+# Selectores y suscripciones
+
+Un selector toma el estado completo y devuelve el dato que necesita un consumidor.
+
+```python
+select_user_name = lambda state: state["user"]["name"]
+unsubscribe = store.select(select_user_name, lambda name: label.setText(name), fire_immediately=True)
+```
+
+`create_selector` combina selectores y evita recalcular cuando sus entradas no cambiaron.
+
+```python
+from pydux import create_selector
+
+select_full_name = create_selector(
+    lambda state: state["user"]["first_name"],
+    lambda state: state["user"]["last_name"],
+    lambda first, last: f"{first} {last}",
+)
+```
+
+| Helper | Cuándo usarlo |
+| --- | --- |
+| `is_identical` | La identidad del objeto importa. |
+| `shallow_equal` | Comparación de primer nivel; es el valor por defecto. |
+| `deep_equal` | Necesitas igualdad estructural anidada. |
+
+No modifiques el resultado de `store.get_state()`; los reducers son la única vía para cambiar estado compartido.

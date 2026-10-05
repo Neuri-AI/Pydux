@@ -32,8 +32,9 @@ pip install pydux
 pip install "pydux[qyro,pyside6]"
 ```
 
-See the [installation guide](docs/getting-started/installation.mdx) for every
-optional framework extra and Poetry commands.
+See the [English installation guide](docs/en/getting-started/installation.mdx)
+or the [guía de instalación en español](docs/es/getting-started/installation.mdx)
+for every optional framework extra and Poetry command.
 
 ## Quick example
 
@@ -56,14 +57,12 @@ print(store.get_state())  # {"counter": {"value": 1}}
 
 ## Documentation
 
-The complete Mintlify documentation lives in [`docs/`](docs/index.mdx):
+The complete Mintlify documentation lives in [`docs/`](docs/en/index.mdx), in
+[English](docs/en/index.mdx) and [español](docs/es/index.mdx):
 
-- [Get started](docs/getting-started/quickstart.mdx)
-- [Core concepts](docs/concepts/store-and-slices.mdx)
-- [Async thunks](docs/guides/async-thunks.mdx)
-- [DevTools and inspector](docs/guides/devtools.mdx)
-- [Qyro integration](docs/integrations/qyro.mdx)
-- [API reference](docs/reference/api.mdx)
+- [Get started](docs/en/getting-started/quickstart.mdx) / [Primeros pasos](docs/es/getting-started/quickstart.mdx)
+- [PyDux + Qyro for beginners](docs/en/getting-started/qyro-for-beginners.mdx) / [PyDux + Qyro para principiantes](docs/es/getting-started/qyro-for-beginners.mdx)
+- [API reference](docs/en/reference/api.mdx) / [Referencia de API](docs/es/reference/api.mdx)
 
 To preview it locally, install Mintlify and run `mint dev` from `docs/`.
 

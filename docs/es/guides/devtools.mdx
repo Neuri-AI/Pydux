@@ -1,0 +1,31 @@
+---
+title: "DevTools e inspector"
+description: "Registra acciones, inspecciona cambios y navega el historial de estado."
+icon: "history"
+---
+
+# DevTools e inspector
+
+Activa `devtools=True` al crear el store. PyDux registra cada dispatch e inicia un inspector local en `127.0.0.1:8765`; si el puerto está ocupado, usa otro libre.
+
+```python
+store = configure_store({"counter": counter_slice}, devtools=True)
+print(store.inspector.base_url)
+store.devtools.undo()
+store.devtools.redo()
+store.devtools.jump_to_state(4)
+```
+
+El inspector muestra acciones, payloads, diferencias de estado e historial en tiempo real.
+
+| Endpoint | Descripción |
+| --- | --- |
+| `GET /health` | Estado del inspector. |
+| `GET /api/traces` | Trazas registradas. |
+| `GET /api/state` | Estado actual. |
+| `POST /api/undo` / `redo` | Navegación de historial. |
+| `POST /api/jump` | Salta a `{"index": <int>}`. |
+
+<Warning>
+  DevTools conserva snapshots y calcula diferencias en cada dispatch. Desactívalo en rutas sensibles a rendimiento si no lo necesitas.
+</Warning>

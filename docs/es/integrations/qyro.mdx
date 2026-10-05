@@ -1,0 +1,44 @@
+---
+title: "Integración con Qyro"
+description: "Usa el estado de PyDux con los hooks de ciclo de vida de componentes Qyro."
+icon: "component"
+---
+
+# Integración con Qyro
+
+Qyro ofrece el ciclo de vida de la aplicación; PyDux ofrece el estado. El mixin `Reactive` rastrea las suscripciones y las libera cuando el componente se desmonta.
+
+```bash
+pip install "pydux[qyro,pyside6]"
+```
+
+```python
+from pydux.adapters.qyro import Reactive
+
+class App(QMainWindow, Component, Reactive, ApplicationContext):
+    def component_will_mount(self):
+        self.bind_selector(store, select_label, self._set_label)
+
+    def render(self):
+        self._label = QLabel(parent=self)
+        button = QPushButton("+1", parent=self)
+        button.clicked.connect(lambda: store.dispatch(counter_slice.actions.increment()))
+
+    def _set_label(self, text):
+        self._label.setText(text)
+```
+
+Suscríbete en `component_will_mount` y crea widgets en `render`. El primer callback se difiere al siguiente tick de UI, cuando los widgets ya existen.
+
+## Varios valores
+
+```python
+from pydux.adapters.qyro import connect_qyro
+
+@connect_qyro(store, {"label": select_label, "count": lambda state: state["counter"]["value"]})
+class StatusPanel:
+    def on_state_change(self, props: dict):
+        print(props)
+```
+
+La guía completa está en [PyDux + Qyro para principiantes](/es/getting-started/qyro-for-beginners).

@@ -1,0 +1,36 @@
+---
+title: "Introducción"
+description: "Qué es PyDux, cómo encaja con Qyro y cómo fluye el estado en una aplicación."
+icon: "sparkles"
+---
+
+# PyDux
+
+PyDux es un contenedor de estado inspirado en Redux Toolkit para aplicaciones de escritorio en Python. Centraliza el estado, registra cambios como acciones y actualiza sólo a los consumidores cuyo dato seleccionado cambió.
+
+<Warning>
+  PyDux está en alpha. Las APIs, adaptadores y DevTools pueden cambiar entre versiones.
+</Warning>
+
+## Qué ofrece
+
+- Slices con reducers y creadores de acciones generados.
+- Suscripciones selectivas y selectores memorizados.
+- Thunks asíncronos con acciones `pending`, `fulfilled` y `rejected`.
+- DevTools con historial, viaje en el tiempo e inspector local.
+- Adaptadores para Qt, Tkinter, Kivy y Qyro.
+
+| Herramienta | Responsabilidad |
+| --- | --- |
+| PyDux | Estado y transiciones de la aplicación. |
+| Qyro Runtime | Contexto, recursos, settings y ciclo de vida. |
+| Qyro CLI | Creación, build, empaquetado y firma de proyectos. |
+
+```text
+Evento de UI → dispatch(acción) → reducer actualiza estado → selector cambia → vista actualiza
+```
+
+<CardGroup cols={2}>
+  <Card title="Instalación" icon="download" href="/es/getting-started/installation">Instala PyDux y los extras de tu framework.</Card>
+  <Card title="Guía para principiantes" icon="graduation-cap" href="/es/getting-started/qyro-for-beginners">Construye tu primera aplicación PyDux + Qyro.</Card>
+</CardGroup>

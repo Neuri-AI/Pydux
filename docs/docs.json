@@ -23,47 +23,99 @@
     }
   },
   "navigation": {
-    "groups": [
+    "languages": [
       {
-        "group": "Getting started",
-        "icon": "rocket",
-        "pages": [
-          "index",
-          "getting-started/installation",
-          "getting-started/quickstart",
-          "getting-started/qyro-for-beginners"
+        "language": "en",
+        "groups": [
+          {
+            "group": "Getting started",
+            "icon": "rocket",
+            "pages": [
+              "en/index",
+              "en/getting-started/installation",
+              "en/getting-started/quickstart",
+              "en/getting-started/qyro-for-beginners"
+            ]
+          },
+          {
+            "group": "Core concepts",
+            "icon": "boxes",
+            "pages": [
+              "en/concepts/store-and-slices",
+              "en/concepts/selectors"
+            ]
+          },
+          {
+            "group": "Guides",
+            "icon": "book-open",
+            "pages": [
+              "en/guides/async-thunks",
+              "en/guides/devtools"
+            ]
+          },
+          {
+            "group": "Integrations",
+            "icon": "blocks",
+            "pages": [
+              "en/integrations/qyro",
+              "en/integrations/ui-bindings"
+            ]
+          },
+          {
+            "group": "Reference",
+            "icon": "code-xml",
+            "pages": [
+              "en/reference/configure-store",
+              "en/reference/api"
+            ]
+          }
         ]
       },
       {
-        "group": "Core concepts",
-        "icon": "boxes",
-        "pages": [
-          "concepts/store-and-slices",
-          "concepts/selectors"
-        ]
-      },
-      {
-        "group": "Guides",
-        "icon": "book-open",
-        "pages": [
-          "guides/async-thunks",
-          "guides/devtools"
-        ]
-      },
-      {
-        "group": "Integrations",
-        "icon": "blocks",
-        "pages": [
-          "integrations/qyro",
-          "integrations/ui-bindings"
-        ]
-      },
-      {
-        "group": "Reference",
-        "icon": "code-xml",
-        "pages": [
-          "reference/configure-store",
-          "reference/api"
+        "language": "es",
+        "groups": [
+          {
+            "group": "Primeros pasos",
+            "icon": "rocket",
+            "pages": [
+              "es/index",
+              "es/getting-started/installation",
+              "es/getting-started/quickstart",
+              "es/getting-started/qyro-for-beginners"
+            ]
+          },
+          {
+            "group": "Conceptos fundamentales",
+            "icon": "boxes",
+            "pages": [
+              "es/concepts/store-and-slices",
+              "es/concepts/selectors"
+            ]
+          },
+          {
+            "group": "Guías",
+            "icon": "book-open",
+            "pages": [
+              "es/guides/async-thunks",
+              "es/guides/devtools"
+            ]
+          },
+          {
+            "group": "Integraciones",
+            "icon": "blocks",
+            "pages": [
+              "es/integrations/qyro",
+              "es/integrations/ui-bindings"
+            ]
+          },
+          {
+            "group": "Referencia",
+            "icon": "code-xml",
+            "pages": [
+              "es/reference/configure-store",
+              "es/reference/api"
+            ]
+          }
         ]
       }
     ]

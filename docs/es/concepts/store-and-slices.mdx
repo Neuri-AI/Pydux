@@ -1,0 +1,44 @@
+---
+title: "Stores, slices y acciones"
+description: "Entiende el árbol de estado y el modelo de actualizaciones basado en acciones."
+icon: "boxes"
+---
+
+# Stores, slices y acciones
+
+El estado raíz suele ser un diccionario con una clave por slice.
+
+```python
+{"counter": {"value": 2}, "user": {"name": "Ada"}}
+```
+
+## Crea un slice
+
+```python
+from pydux import create_slice
+
+user_slice = create_slice(
+    name="user",
+    initial_state={"name": "Invitado"},
+    reducers={
+        "set_name": lambda state, action: state.update(name=action.payload),
+        "reset": lambda state, action: {"name": "Invitado"},
+    },
+)
+```
+
+PyDux genera `user_slice.actions.set_name(...)` con el tipo `user/set_name`. Un reducer puede modificar el borrador recibido o devolver un estado de reemplazo.
+
+## Combina slices
+
+```python
+from pydux import configure_store
+
+store = configure_store({"counter": counter_slice, "user": user_slice}, devtools=False)
+```
+
+Las acciones pueden transportar datos en `action.payload` y metadatos mediante `meta={...}`. Usa `extra_reducers` para responder a acciones externas, como el ciclo de vida de un thunk.
+
+<Tip>
+  Los reducers deben limitarse a transiciones de estado: no pongas I/O, red ni tareas lentas dentro de ellos.
+</Tip>

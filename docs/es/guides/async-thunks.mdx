@@ -1,0 +1,35 @@
+---
+title: "Thunks asíncronos"
+description: "Modela tareas asíncronas con estados pending, fulfilled y rejected."
+icon: "loader-circle"
+---
+
+# Thunks asíncronos
+
+`create_async_thunk(type_prefix, payload_creator)` envuelve una función o coroutine y despacha acciones de ciclo de vida. `configure_store(...)` instala el middleware necesario.
+
+```python
+from pydux import create_async_thunk, create_slice
+
+jobs_slice = create_slice(
+    name="jobs",
+    initial_state={"status": "idle", "result": None, "error": None},
+    reducers={},
+    extra_reducers={
+        "jobs/fetch/pending": lambda state, action: state.update(status="loading", error=None),
+        "jobs/fetch/fulfilled": lambda state, action: state.update(status="done", result=action.payload),
+        "jobs/fetch/rejected": lambda state, action: state.update(status="failed", error=action.payload),
+    },
+)
+
+fetch_jobs = create_async_thunk("jobs/fetch", lambda: ["build", "test"])
+store.dispatch(fetch_jobs())
+```
+
+| Acción | Cuándo ocurre |
+| --- | --- |
+| `pending` | Empieza el trabajo. |
+| `fulfilled` | La función devuelve un valor. |
+| `rejected` | La función lanza un error. |
+
+El error original se vuelve a lanzar después de despachar `rejected`, por lo que el llamador puede manejarlo.

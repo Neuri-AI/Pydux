@@ -1,0 +1,23 @@
+---
+title: "Referencia de API"
+description: "Referencia rápida de las APIs públicas de PyDux."
+icon: "braces"
+---
+
+# Referencia de API
+
+| API | Descripción |
+| --- | --- |
+| `store.get_state()` | Devuelve el estado raíz actual. |
+| `store.dispatch(action_or_thunk)` | Despacha una acción o thunk. |
+| `store.select(selector, listener, equality_fn=None, fire_immediately=False)` | Suscripción selectiva; devuelve `unsubscribe()`. |
+| `create_slice(...)` | Crea un slice y acciones generadas. |
+| `configure_store(...)` | Crea un store con middleware de thunks. |
+| `create_selector(...)` | Crea un selector derivado memorizado. |
+| `create_async_thunk(...)` | Crea un thunk con ciclo de vida. |
+| `PyDuxDevTools` | Historial y viaje en el tiempo. |
+| `start_inspector(...)` | Inicia el inspector de un store con DevTools. |
+| `ReactiveBinding` / `connect` | Bindings genéricos de UI. |
+| `Reactive` / `connect_qyro` | Integración de ciclo de vida con Qyro. |
+
+Consulta las guías de navegación para ejemplos y comportamiento detallado.

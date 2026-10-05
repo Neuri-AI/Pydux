@@ -1,0 +1,35 @@
+---
+title: "configure_store"
+description: "Referencia para crear un store configurado de PyDux."
+icon: "settings-2"
+---
+
+# `configure_store`
+
+```python
+configure_store(
+    reducer,
+    preloaded_state=None,
+    middleware=None,
+    devtools=True,
+    inspector_auto_start=True,
+    inspector_host="127.0.0.1",
+    inspector_port=8765,
+    inspector_log=True,
+) -> Store
+```
+
+Crea un store con middleware de thunks. Acepta un reducer raíz o un mapa de nombres a reducers o `Slice`.
+
+| Parámetro | Descripción |
+| --- | --- |
+| `reducer` | Reducer raíz o mapa de reducers/slices. |
+| `preloaded_state` | Estado inicial opcional. |
+| `middleware` | Middleware adicional después del thunk incorporado. |
+| `devtools` | `True`, una instancia `PyDuxDevTools` o `False`. |
+| `inspector_auto_start` | Inicia el inspector web con DevTools. |
+| `inspector_host` / `port` | Host y puerto preferido del inspector. |
+
+```python
+store = configure_store({"counter": counter_slice}, devtools=False)
+```

@@ -1,0 +1,31 @@
+---
+title: "Bindings de interfaz"
+description: "Conecta valores seleccionados a Qt, Tkinter, Kivy o código de UI genérico."
+icon: "panel-top"
+---
+
+# Bindings de interfaz
+
+El núcleo de PyDux no conoce widgets. Los adaptadores programan actualizaciones en el bucle correcto de cada framework.
+
+```python
+from pydux.adapters.base import ReactiveBinding
+from pydux.adapters.tkinter import TkinterBridge
+
+binding = ReactiveBinding(
+    store=store,
+    selector=lambda state: state["user"]["name"],
+    target=lambda name: label.config(text=name),
+    bridge=TkinterBridge(root),
+)
+binding.dispose()
+```
+
+`connect` asigna una selección de propiedades a una instancia de clase y llama `on_props_changed()` cuando cambia.
+
+| Framework | Bridge |
+| --- | --- |
+| Qt | `QtMainThreadBridge` con `QTimer.singleShot`. |
+| Tkinter | `TkinterBridge(widget)` con `after_idle`. |
+| Kivy | `KivyBridge` con `Clock.schedule_once`. |
+| Pruebas | `DirectThreadBridge` ejecuta de inmediato. |
