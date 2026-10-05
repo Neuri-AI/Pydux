@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>PyDux Inspector</title>
+    <link rel="stylesheet" href="/static/inspector.css" />
+</head>
+<body>
+    <div class="app">
+        <header class="topbar">
+            <div class="brand">PyDux Inspector</div>
+            <div class="controls">
+                <div class="status">
+                    <span id="live-dot" class="dot"></span>
+                    <span id="live-text">Disconnected</span>
+                </div>
+                <button id="undo-btn">Undo</button>
+                <button id="redo-btn">Redo</button>
+                <button id="replay-btn">Replay</button>
+                <button id="export-btn">Export JSON</button>
+            </div>
+        </header>
+
+        <div class="layout">
+            <section class="pane">
+                <div class="pane-header">
+                    <span>Actions</span>
+                    <span id="summary" class="meta">0 traces</span>
+                </div>
+                <ul id="history" class="history-list"></ul>
+            </section>
+
+            <section class="pane">
+                <div class="tabs" role="tablist">
+                    <button class="tab active" role="tab" data-tab="diff">State diff</button>
+                    <button class="tab" role="tab" data-tab="state">Full state</button>
+                    <button class="tab" role="tab" data-tab="payload">Payload</button>
+                </div>
+                <div class="viewer">
+                    <pre id="content"></pre>
+                    <div id="empty" class="empty" style="display:none;">No actions dispatched yet.</div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script src="/static/inspector.js"></script>
+</body>
+</html>
