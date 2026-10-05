@@ -1,15 +1,78 @@
 [project]
 name = "pydux"
 version = "1.0.0a1"
-description = ""
+description = "A Redux Toolkit-inspired state container for Python desktop applications."
 authors = [
-    {name = "runesc",email = "fredogodofredodospuntosv@gmail.com"}
+    { name = "Neuri", email = "ppg@neuri.ai" },
+]
+maintainers = [
+    { name = "Luis Alfredo De Los Reyes", email = "luisalfredoreyes98@gmail.com" },
 ]
 license = "MIT"
-requires-python = ">=3.10"
+readme = "README.md"
+requires-python = ">=3.10,<3.16"
+keywords = [
+    "python", "state-management", "redux", "redux-toolkit", "desktop-app",
+    "gui", "qt", "pyside", "pyqt", "kivy", "tkinter", "qyro",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Libraries :: Application Frameworks",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
+    "Typing :: Typed",
+]
 dependencies = [
 ]
 
+[project.optional-dependencies]
+qyro = [
+    "qyro-engine>=1.0.0a1,<2.0.0",
+]
+pyside6 = [
+    "PySide6>=6.5.0; python_version < '3.15'",
+]
+pyqt6 = [
+    "PyQt6>=6.5.0",
+]
+pyside2 = [
+    "PySide2>=5.15.0; python_version < '3.11'",
+]
+pyqt5 = [
+    "PyQt5>=5.15.0; python_version >= '3.11' and python_version < '3.14'",
+]
+kivy = [
+    "kivy>=2.2.0",
+]
+all = [
+    "qyro-engine>=1.0.0a1,<2.0.0",
+    "PySide6>=6.5.0; python_version < '3.15'",
+    "PyQt6>=6.5.0",
+    "PySide2>=5.15.0; python_version < '3.11'",
+    "PyQt5>=5.15.0; python_version >= '3.11' and python_version < '3.14'",
+    "kivy>=2.2.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/Neuri-AI/pydux"
+Repository = "https://github.com/Neuri-AI/pydux"
+Issues = "https://github.com/Neuri-AI/pydux/issues"
+
+[tool.poetry]
+packages = [{ include = "pydux" }]
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=8.0.0"
+pytest-cov = ">=4.1.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
