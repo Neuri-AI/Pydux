@@ -1,12 +1,15 @@
 ---
 title: "Instalación"
-description: "Instala PyDux y los extras opcionales para tu framework."
+description: "Instala PyDux, integraciones opcionales con frameworks y la vista previa local de la documentación."
 icon: "download"
 ---
 
 # Instalación
 
-PyDux soporta Python `>=3.10,<3.16`. El núcleo no requiere dependencias de terceros; los frameworks se instalan como extras.
+PyDux es compatible con Python `>=3.10,<3.16`. El core utiliza únicamente la biblioteca estándar;
+los paquetes de frameworks son extras opcionales.
+
+## Paquete core
 
 <CodeGroup>
 ```bash pip
@@ -18,20 +21,43 @@ poetry add pydux
 ```
 </CodeGroup>
 
-| Integración | pip |
-| --- | --- |
-| PySide6 | `pip install "pydux[pyside6]"` |
-| PyQt6 | `pip install "pydux[pyqt6]"` |
-| PyQt5 | `pip install "pydux[pyqt5]"` |
-| Kivy | `pip install "pydux[kivy]"` |
-| Qyro + PySide6 | `pip install "pydux[qyro,pyside6]"` |
+Para un checkout local, instala en modo editable:
 
-Tkinter normalmente ya viene con CPython. Para un checkout local, usa `pip install -e .`.
+```bash
+pip install -e .
+```
 
-## Vista previa de la documentación
+## Extras de frameworks
+
+Instala únicamente el stack utilizado por la aplicación.
+
+| Integración | pip | Poetry |
+| --- | --- | --- |
+| PySide6 | `pip install "pydux[pyside6]"` | `poetry add pydux -E pyside6` |
+| PyQt6 | `pip install "pydux[pyqt6]"` | `poetry add pydux -E pyqt6` |
+| PySide2 | `pip install "pydux[pyside2]"` | `poetry add pydux -E pyside2` |
+| PyQt5 | `pip install "pydux[pyqt5]"` | `poetry add pydux -E pyqt5` |
+| Kivy | `pip install "pydux[kivy]"` | `poetry add pydux -E kivy` |
+| Qyro + PySide6 | `pip install "pydux[qyro,pyside6]"` | `poetry add pydux -E qyro -E pyside6` |
+
+Tkinter se incluye con la mayoría de las distribuciones de CPython y no requiere ningún extra de PyDux.
+
+<Note>
+  `pydux[all]` instala todas las integraciones opcionales. Es útil para desarrollo
+  y pruebas de compatibilidad, pero las aplicaciones normalmente deberían instalar únicamente su
+  framework de UI seleccionado.
+</Note>
+
+## Previsualiza esta documentación localmente
+
+Este directorio es una raíz de documentación de Mintlify. Instala Mintlify CLI y luego
+ejecútalo desde `docs/`:
 
 ```bash
 npm install -g mint
 cd docs
 mint dev
 ```
+
+Mintlify servirá una vista previa local y validará la navegación de `docs.json` y las
+páginas MDX mientras las editas.

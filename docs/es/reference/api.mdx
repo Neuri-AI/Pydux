@@ -1,10 +1,12 @@
 ---
-title: "Referencia de API"
-description: "Referencia detallada de tipos, funciones, parámetros, retornos, adaptadores y ciclo de vida de PyDux."
+title: "Referencia de la API"
+description: "Referencia completa de los tipos públicos, funciones, adaptadores, parámetros, valores de retorno y comportamiento del ciclo de vida de PyDux."
 icon: "braces"
 ---
 
-# Referencia de API
+# Referencia de la API
+
+Esta referencia describe la API pública de PyDux implementada por el paquete.
 
 ## `Action`
 
@@ -12,13 +14,13 @@ icon: "braces"
 Action(type: str, payload: Any = None, meta: dict[str, Any] = {})
 ```
 
-`Action` es un dataclass inmutable que describe una transición de estado.
+Un objeto inmutable de transición de estado.
 
-| Parámetro | Tipo | Valor por defecto | Descripción |
+| Parámetro | Tipo | Predeterminado | Descripción |
 | --- | --- | --- | --- |
-| `type` | `str` | obligatorio | Tipo no vacío, normalmente `slice/acción`. |
-| `payload` | `Any` | `None` | Dato que consume el reducer. |
-| `meta` | `dict[str, Any]` | `{}` | Metadatos que no pertenecen al estado. |
+| `type` | `str` | requerido | Un tipo de action no vacío, convencionalmente `slice/action`. |
+| `payload` | `Any` | `None` | Datos consumidos por un reducer. |
+| `meta` | `dict[str, Any]` | `{}` | Metadatos ajenos al estado, como una fuente o un ID de correlación. |
 
 Un `type` vacío o que no sea string lanza `ValueError`.
 
@@ -30,12 +32,12 @@ create_slice(name, initial_state, reducers, extra_reducers=None) -> Slice
 
 | Parámetro | Tipo | Descripción |
 | --- | --- | --- |
-| `name` | `str` | Namespace no vacío de acciones generadas. |
-| `initial_state` | `Any` | Valor inicial; se copia profundamente antes de mutarlo. |
-| `reducers` | `dict[str, Callable[[state, action], Any]]` | Reducers locales por nombre corto. |
-| `extra_reducers` | `dict[str, Callable[[state, action], Any]] \| None` | Reducers para tipos externos completos. |
+| `name` | `str` | Namespace no vacío requerido para los tipos de actions generados. |
+| `initial_state` | `Any` | Valor inicial de la rama; se realiza una copia profunda antes de la mutación del reducer. |
+| `reducers` | `dict[str, Callable[[state, action], Any]]` | Reducers locales indexados por el nombre corto de la action. |
+| `extra_reducers` | `dict[str, Callable[[state, action], Any]] \| None` | Reducers indexados por el tipo completo de una action externa. |
 
-Un reducer recibe un borrador mutable y un `Action`. Modifica el borrador y retorna `None`, o devuelve un estado completo de reemplazo.
+Un reducer recibe un draft mutable y una `Action`. Devuelve `None` después de modificar el draft, o devuelve un estado de reemplazo completo.
 
 ```python
 todos = create_slice(
@@ -47,17 +49,19 @@ todos = create_slice(
     },
 )
 
-todos.actions.add({"title": "Documentar"})  # tipo: todos/add
+todos.actions.add({"title": "Write docs"})  # Action(type="todos/add", ...)
 ```
 
-| Miembro de `Slice` | Descripción |
-| --- | --- |
-| `name` | Namespace del slice. |
-| `initial_state` | Definición original del estado inicial. |
-| `actions` | Creadores de acciones accesibles con punto. |
-| `reducer` | Función compatible con `configure_store`. |
+### `Slice`
 
-Una acción desconocida deja intacto el objeto de estado del slice. Una acción generada inexistente lanza `AttributeError`.
+| Miembro | Tipo | Descripción |
+| --- | --- | --- |
+| `name` | `str` | Namespace proporcionado a `create_slice`. |
+| `initial_state` | `Any` | Definición original del estado inicial. |
+| `actions` | `ActionNamespace` | Valores `ActionCreator` generados con acceso mediante punto. |
+| `reducer` | `Callable[[state, action], Any]` | Reducer compatible con `configure_store`. |
+
+Las actions desconocidas dejan sin cambios el objeto slice. Acceder a una action generada inexistente lanza `AttributeError`.
 
 ## `configure_store`
 
@@ -74,54 +78,87 @@ configure_store(
 ) -> Store
 ```
 
-| Parámetro | Tipo | Default | Descripción |
+| Parámetro | Tipo | Predeterminado | Descripción |
 | --- | --- | --- | --- |
-| `reducer` | `Reducer` o `dict[str, Reducer \| Slice]` | obligatorio | Reducer raíz o mapa de ramas. |
-| `preloaded_state` | `Any \| None` | `None` | Estado inicial; las claves dadas reemplazan defaults de slices. |
-| `middleware` | `Sequence[Middleware] \| None` | `None` | Middleware después del thunk incorporado. |
-| `devtools` | `bool \| PyDuxDevTools` | `True` | Tracker interno, uno personalizado o `False`. |
-| `inspector_auto_start` | `bool` | `True` | Inicia inspector cuando DevTools está activo. |
-| `inspector_host` / `port` | `str` / `int` | localhost / 8765 | Destino del inspector; un puerto ocupado cambia a uno libre. |
-| `inspector_log` | `bool` | `True` | Imprime la URL al iniciar. |
+| `reducer` | `Reducer` or `dict[str, Reducer \| Slice]` | requerido | Reducer raíz o reducers/slices de ramas con nombre. |
+| `preloaded_state` | `Any \| None` | `None` | Estado inicial; las keys proporcionadas en el mapping reemplazan los valores predeterminados de los slices. |
+| `middleware` | `Sequence[Middleware] \| None` | `None` | Middleware añadido después del middleware de thunks integrado. |
+| `devtools` | `bool \| PyDuxDevTools` | `True` | Tracker integrado, un tracker personalizado o `False`. |
+| `inspector_auto_start` | `bool` | `True` | Inicia el inspector web con DevTools. |
+| `inspector_host` / `inspector_port` | `str` / `int` | localhost / 8765 | Destino de binding del inspector; si el puerto está ocupado, se utiliza un puerto libre. |
+| `inspector_log` | `bool` | `True` | Imprime la URL de inicio. |
 
-El middleware de thunks siempre se instala. DevTools añade `store.devtools`; el inspector exitoso añade `store.inspector`.
+Los thunks siempre están habilitados. DevTools adjunta `store.devtools`; un inicio automático exitoso adjunta `store.inspector`.
 
 ## `Store`
 
 | Método | Firma | Comportamiento |
 | --- | --- | --- |
-| `get_state` | `() -> TState` | Devuelve el estado raíz; no lo modifiques. |
-| `dispatch` | `(action: Action \| Callable) -> Any` | Ejecuta el pipeline y devuelve el resultado. |
-| `select` | `(selector, listener, equality_fn=None, fire_immediately=False) -> unsubscribe` | Crea una suscripción selectiva. |
-| `subscribe` | `(listener) -> unsubscribe` | Se llama tras cada dispatch. |
+| `get_state` | `() -> TState` | Devuelve el estado raíz. No lo modifiques. |
+| `dispatch` | `(action: Action \| Callable) -> Any` | Ejecuta la cadena de middleware y devuelve su resultado. |
+| `select` | `(selector, listener, equality_fn=None, fire_immediately=False) -> unsubscribe` | Añade una suscripción selectiva. |
+| `subscribe` | `(listener) -> unsubscribe` | Añade una suscripción a todo el store después de cada dispatch. |
 
-`select` evalúa el selector al suscribirse. Con `fire_immediately=True` llama al listener con ese valor. Después sólo lo llama si `equality_fn(anterior, actual)` es falso; por defecto usa `shallow_equal`.
+`select` evalúa su selector al suscribirse. Con `fire_immediately=True`, llama al listener con ese valor. Después, llama al listener únicamente si `equality_fn(previous, current)` es false; `shallow_equal` es el valor predeterminado.
 
-Llamar `unsubscribe()` varias veces es seguro. Un error del listener se registra y no cancela el dispatch. Despachar algo que no sea `Action` directamente al Store lanza `TypeError`; despachar dentro de un reducer lanza `RuntimeError`.
+Calling `unsubscribe()` more than once is safe. Listener failures are logged and isolated. A non-`Action` directly dispatched to `Store` raises `TipoError`; dispatching from inside a reducer raises `RuntimeError`.
 
-## Selectores, thunks y DevTools
+## Selectores y comparaciones
 
-`create_selector(*inputs, combiner, equality_fn=shallow_equal)` requiere al menos un selector de entrada y un combiner; de otro modo lanza `ValueError`. El resultado expone `recomputations` y `reset_recomputations()`.
+```python
+create_selector(*input_selectors, result_function, equality_fn=shallow_equal) -> MemoizedSelector
+```
 
-| Helper | Comportamiento |
+At least one input selector and one result function are requerido, otherwise `ValueError` is raised.
+
+| Miembro | Descripción |
 | --- | --- |
-| `is_identical(a, b)` | Compara con `is`. |
-| `shallow_equal(a, b)` | Compara identidad y luego valores de primer nivel. |
-| `deep_equal(a, b)` | Usa igualdad recursiva (`a == b`). |
+| `recomputations` | Número de veces que se ejecutó la función de resultado. |
+| `reset_recomputations()` | Restablece el contador sin borrar el resultado almacenado en caché. |
 
-`create_async_thunk(prefix, creator)` emite `prefix/pending`, `prefix/fulfilled` con el resultado, o `prefix/rejected` con el mensaje del error y `meta={"error": True}`. Resuelve awaitables y vuelve a lanzar el error original.
+| Helper | Comportamiento exacto |
+| --- | --- |
+| `is_identical(a, b)` | `a is b`. |
+| `shallow_equal(a, b)` | Identidad, después valores de nivel superior de dict/list/tuple y, finalmente, igualdad normal. |
+| `deep_equal(a, b)` | Igualdad recursiva mediante `a == b`. |
 
-`PyDuxDevTools(max_history=100)` registra trazas con `index`, `action`, estados anterior/siguiente, timestamp, duración y rutas cambiadas. Sus métodos son `undo()`, `redo()`, `jump_to_state(index)`, `subscribe_traces(listener)` y `export_trace_json()`.
+## Thunks asíncronos y middleware
 
-## Adaptadores
+```python
+create_async_thunk(type_prefix, payload_creator) -> AsyncThunk
+create_thunk_middleware(extra_argument=None) -> Middleware
+```
+
+Despachar un `AsyncThunk` ejecuta `payload_creator(*args, **kwargs)` y emite `type_prefix/pending`, después `fulfilled` con su resultado, o `rejected` con `str(exception)` y `meta={"error": True}`. Los awaitables se resuelven. Los errores se vuelven a lanzar después de `rejected`; los callables de thunk reciben `(dispatch, get_state, extra_argument)`.
+
+## DevTools e inspector
+
+```python
+PyDuxDevTools(max_history=100)
+start_inspector(store, host="127.0.0.1", port=8765,
+                auto_reassign_port=True, log_startup=True) -> PyDuxInspectorServer
+```
+
+`history` devuelve copias de `ActionTrace` con `index`, `action`, `prev_state`, `next_state`, `timestamp`, `duration_ms` y `changed_paths`.
+
+| Método | Comportamiento |
+| --- | --- |
+| `undo()` / `redo()` | Navega por los estados registrados si están disponibles. |
+| `jump_to_state(index)` | Restaura un estado de trace válido. |
+| `subscribe_traces(listener)` | Devuelve una función de cancelación de suscripción para traces. |
+| `export_trace_json()` | Exporta los metadatos de los traces como JSON. |
+
+Un inspector expone `host`, `port`, `base_url`, `start()` y `stop()`. `start_inspector` reutiliza un inspector existente y lanza `ValueError` sin DevTools.
+
+## Adaptadores de UI y Qyro
 
 ```python
 ReactiveBinding(store, selector, target, equality_fn=None, bridge=None)
 connect(store, map_state_to_props=None, bridge=None)
 Reactive.bind_selector(store, selector, on_change, equality_fn=None) -> unsubscribe
-connect_qyro(store, selectors)
+connect_qyro(store, selectors) -> class decorator
 ```
 
-`ReactiveBinding` se suscribe de inmediato y programa `target(value)` con su bridge; `dispose()` cancela. `connect` asigna a la instancia cada entrada producida por `map_state_to_props(state)` y llama opcionalmente a `on_props_changed()`.
+`ReactiveBinding` se suscribe inmediatamente y programa `target(value)` mediante su bridge; `dispose()` cancela la suscripción. `connect` asigna las entradas de `map_state_to_props(state)` a atributos de la instancia y después llama al `on_props_changed()` opcional; almacena las funciones de cancelación de suscripción en `_pydux_unsubscribers`.
 
-`Reactive.bind_selector` difiere el primer callback al tick Qt, Tkinter o Kivy, rastrea unsubscribers y los libera en `component_will_unmount`. `connect_qyro` recibe `{nombre_atributo: selector}`, escribe atributos, llama opcionalmente a `on_state_change(copia_de_props)` y limpia al desmontar.
+`Reactive.bind_selector` retrasa su primer callback hasta el tick de UI de Qt, Tkinter o Kivy, realiza seguimiento de cada función de cancelación de suscripción y las libera en `component_will_unmount`. `connect_qyro` acepta `{attribute_name: selector}`, escribe valores en los atributos del componente, llama al `on_state_change(props_copy)` opcional y realiza la limpieza al desmontarse.

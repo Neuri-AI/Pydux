@@ -1,12 +1,16 @@
 ---
-title: "Bindings de interfaz"
-description: "Conecta valores seleccionados a Qt, Tkinter, Kivy o código de UI genérico."
+title: "Bindings de UI"
+description: "Vincula valores de selectores a Qt, Tkinter, Kivy o código de UI independiente del framework."
 icon: "panel-top"
 ---
 
-# Bindings de interfaz
+# Bindings de UI
 
-El núcleo de PyDux no conoce widgets. Los adaptadores programan actualizaciones en el bucle correcto de cada framework.
+El core de PyDux no conoce los widgets. Sus adaptadores programan las actualizaciones de UI en el event loop correcto del framework.
+
+## `ReactiveBinding`
+
+Utiliza `ReactiveBinding` para conectar un selector con un callback. Entrega inmediatamente el valor seleccionado actual y se detiene después de `dispose()`.
 
 ```python
 from pydux.adapters.base import ReactiveBinding
@@ -18,18 +22,38 @@ binding = ReactiveBinding(
     target=lambda name: label.config(text=name),
     bridge=TkinterBridge(root),
 )
+
 binding.dispose()
 ```
 
-`connect` asigna una selección de propiedades a una instancia de clase y llama `on_props_changed()` cuando cambia.
+## `connect`
 
-| Framework | Bridge |
-| --- | --- |
-| Qt | `QtMainThreadBridge` con `QTimer.singleShot`. |
-| Tkinter | `TkinterBridge(widget)` con `after_idle`. |
-| Kivy | `KivyBridge` con `Clock.schedule_once`. |
-| Pruebas | `DirectThreadBridge` ejecuta de inmediato. |
+Utiliza `connect` para copiar un mapping de propiedades seleccionadas en una instancia de clase.
 
-`ReactiveBinding(store, selector, target, equality_fn=None, bridge=None)` se suscribe con `fire_immediately=True`. Su callback no toca la UI directamente: llama `bridge.schedule_on_main_thread(lambda: target(value))`. Llama `dispose()` al destruir el consumidor para cancelar esa suscripción.
+```python
+from pydux.adapters.base import connect
 
-`connect(store, map_state_to_props=None, bridge=None)` es un decorador de clase. Al construir la instancia, ejecuta `map_state_to_props(state)`, asigna cada entrada como atributo y llama `on_props_changed()` si existe. Sus unsubscribers se guardan en `_pydux_unsubscribers`; el decorador no añade una destrucción automática, por lo que un componente no-Qyro debe administrar su ciclo de vida.
+@connect(
+    store,
+    map_state_to_props=lambda state: {
+        "name": state["user"]["name"],
+        "count": state["counter"]["value"],
+    },
+)
+class Panel:
+    def on_props_changed(self):
+        print(self.name, self.count)
+```
+
+## Bridges del main thread
+
+| Framework | Bridge | Mecanismo de programación |
+| --- | --- | --- |
+| Qt | `QtMainThreadBridge` | `QTimer.singleShot` |
+| Tkinter | `TkinterBridge(widget)` | `widget.after_idle` |
+| Kivy | `KivyBridge` | `Clock.schedule_once` |
+| Independiente del framework/testing | `DirectThreadBridge` | Se ejecuta inmediatamente |
+
+<Tip>
+  Elige el bridge que corresponda con los widgets que se están actualizando. Un dispatch puede ocurrir fuera del loop de UI —especialmente dentro de un thunk— mientras que la modificación de widgets debe ejecutarse en el main thread del framework.
+</Tip>

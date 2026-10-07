@@ -1,36 +1,81 @@
 ---
 title: "Integración con Qyro"
-description: "Usa el estado de PyDux con los hooks de ciclo de vida de componentes Qyro."
+description: "Utiliza el estado de PyDux con los hooks del ciclo de vida de componentes de Qyro."
 icon: "component"
 ---
 
 # Integración con Qyro
 
-Qyro ofrece el ciclo de vida de la aplicación; PyDux ofrece el estado. El mixin `Reactive` rastrea las suscripciones y las libera cuando el componente se desmonta.
+Qyro proporciona el ciclo de vida de la aplicación; PyDux proporciona el estado. El mixin `Reactive` conecta ambos mediante el seguimiento de suscripciones y su liberación cuando el componente se desmonta.
+
+## Instala el stack
 
 ```bash
 pip install "pydux[qyro,pyside6]"
 ```
 
-```python
+O permite que Qyro CLI cree un proyecto con PyDux incluido:
+
+```bash
+qyro init --name my-app --binding PySide6 --addon pydux
+```
+
+## Crea el store
+
+```python store.py
+from pydux import configure_store, create_selector, create_slice
+
+counter_slice = create_slice(
+    name="counter",
+    initial_state={"value": 0},
+    reducers={"increment": lambda state, action: state.update(value=state["value"] + 1)},
+)
+
+store = configure_store({"counter": counter_slice}, devtools=True)
+select_label = create_selector(
+    lambda state: state["counter"]["value"],
+    lambda value: f"Count = {value}",
+)
+```
+
+## Vincula el estado en un componente
+
+Suscríbete en `component_will_mount`. Qyro crea los widgets posteriormente en `render`, por lo que el adaptador difiere el primer callback al siguiente tick de UI.
+
+```python main.py
+import sys
+from PySide6.QtWidgets import QLabel, QMainWindow, QPushButton, QVBoxLayout, QWidget
+from qyro import ApplicationContext
+from qyro.ui.component import Component
 from pydux.adapters.qyro import Reactive
+from store import counter_slice, select_label, store
+
 
 class App(QMainWindow, Component, Reactive, ApplicationContext):
     def component_will_mount(self):
+        self.resize(320, 180)
         self.bind_selector(store, select_label, self._set_label)
 
     def render(self):
-        self._label = QLabel(parent=self)
-        button = QPushButton("+1", parent=self)
+        container = QWidget(self)
+        layout = QVBoxLayout(container)
+        self._label = QLabel(parent=container)
+        button = QPushButton("+1", parent=container)
         button.clicked.connect(lambda: store.dispatch(counter_slice.actions.increment()))
+        layout.addWidget(self._label)
+        layout.addWidget(button)
+        self.setCentralWidget(container)
 
-    def _set_label(self, text):
+    def _set_label(self, text: str):
         self._label.setText(text)
+
+
+window = App()
+window.show()
+sys.exit(window.run())
 ```
 
-Suscríbete en `component_will_mount` y crea widgets en `render`. El primer callback se difiere al siguiente tick de UI, cuando los widgets ya existen.
-
-## Varios valores
+## Vincula múltiples valores con `connect_qyro`
 
 ```python
 from pydux.adapters.qyro import connect_qyro
@@ -38,22 +83,23 @@ from pydux.adapters.qyro import connect_qyro
 @connect_qyro(store, {"label": select_label, "count": lambda state: state["counter"]["value"]})
 class StatusPanel:
     def on_state_change(self, props: dict):
-        print(props)
+        # self.label and self.count are current.
+        pass
 ```
 
-La guía completa está en [PyDux + Qyro para principiantes](/es/getting-started/qyro-for-beginners).
+`connect_qyro` limpia todas las suscripciones desde `component_will_unmount`.
 
-## Props y estado PyDux no son lo mismo
+## Las props y el estado de PyDux son diferentes
 
-`Component` de Qyro acepta un diccionario `props` y también props como argumentos keyword. `parent` se reserva para el widget Qt subyacente; cualquier otro keyword se guarda en `self.props`.
+`Component` de Qyro acepta tanto un diccionario `props` como props abreviadas mediante argumentos de palabra clave. `parent` está reservado para el widget Qt subyacente; todos los demás argumentos de palabra clave pasan a formar parte de `self.props`.
 
 ```python
-StatusPanel(parent=self, title="Telemetría", refresh_seconds=5)
-# Equivale a:
-StatusPanel(parent=self, props={"title": "Telemetría", "refresh_seconds": 5})
+StatusPanel(parent=self, title="Telemetry", refresh_seconds=5)
+# Equivalent to:
+StatusPanel(parent=self, props={"title": "Telemetry", "refresh_seconds": 5})
 ```
 
-Usa props para valores que entrega el padre al construir el componente. Usa selectores PyDux para estado compartido que puede cambiar después. Ambos se pueden combinar:
+Utiliza props para los valores proporcionados por un padre al construir un componente. Utiliza selectores de PyDux para el estado compartido que puede cambiar después de la construcción. Ambos pueden trabajar juntos:
 
 ```python
 class StatusPanel(QWidget, Component, Reactive):
@@ -61,14 +107,14 @@ class StatusPanel(QWidget, Component, Reactive):
         self.bind_selector(store, select_status, self._set_status)
 
     def render(self):
-        self._label = QLabel(self.props.get("title", "Estado"), parent=self)
+        self._label = QLabel(self.props.get("title", "Status"), parent=self)
 
     def _set_status(self, status):
         self._label.setText(f"{self.props['title']}: {status}")
 ```
 
-## Ciclo de vida y limpieza
+## Detalles del ciclo de vida y limpieza
 
-`Reactive.bind_selector(store, selector, on_change, equality_fn=None)` devuelve la función para cancelar la suscripción. El primer callback se difiere intencionalmente al siguiente tick de UI: puedes suscribirte en `component_will_mount` aunque `render` aún no haya creado widgets. Al ejecutarse `component_will_unmount`, `Reactive` llama cada unsubscriber registrado y continúa la cadena normal de herencia.
+`Reactive.bind_selector(store, selector, on_change, equality_fn=None)` devuelve la función de cancelación de suscripción que crea. El callback se difiere intencionalmente: es seguro llamar a `bind_selector` en `component_will_mount`, antes de que `render` cree los widgets. Cuando se ejecuta `component_will_unmount`, `Reactive` invoca cada función de cancelación de suscripción registrada y después reenvía el hook a través del orden normal de resolución de métodos.
 
-`connect_qyro` envuelve tanto `component_will_mount` como `component_will_unmount` y llama los hooks originales si existen. `on_state_change` recibe una copia de los valores conectados hasta ese momento; como cada selector puede llegar por separado, el primer callback puede contener un subconjunto de props.
+`connect_qyro` envuelve tanto `component_will_mount` como `component_will_unmount`. Invoca los hooks originales cuando existen. Su argumento `on_state_change` es una copia de los valores conectados actualmente; los callbacks individuales de los selectores pueden ocurrir de forma independiente, por lo que el primer callback puede contener únicamente los valores entregados hasta ese momento.

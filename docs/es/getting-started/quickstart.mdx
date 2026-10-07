@@ -1,32 +1,72 @@
 ---
 title: "Inicio rápido"
-description: "Crea un slice contador, despacha acciones y reacciona al estado seleccionado."
+description: "Crea un slice de contador, despacha acciones y reacciona al estado seleccionado."
 icon: "circle-play"
 ---
 
 # Inicio rápido
 
-PyDux se basa en cinco ideas: **store**, **slice**, **acción**, **reducer** y **selector**.
+Esta página crea un contador sin una GUI. Presenta las cinco ideas que necesitas
+para comenzar a usar PyDux: un **store**, **slice**, **action**, **reducer** y
+**selector**.
+
+## 1. Define un slice
+
+Un slice posee un estado inicial y los reducers que pueden modificarlo. PyDux crea
+creadores de acciones con namespace a partir de los nombres de los reducers.
 
 ```python
-from pydux import configure_store, create_slice
+from pydux import create_slice
 
-counter = create_slice(
+counter_slice = create_slice(
     name="counter",
     initial_state={"value": 0},
-    reducers={"increment": lambda state, action: state.update(value=state["value"] + 1)},
+    reducers={
+        "increment": lambda state, action: state.update(value=state["value"] + 1),
+        "decrement": lambda state, action: state.update(value=state["value"] - 1),
+    },
 )
-
-store = configure_store({"counter": counter}, devtools=False)
-store.dispatch(counter.actions.increment())
-print(store.get_state())  # {"counter": {"value": 1}}
 ```
 
-Suscríbete al valor que necesita una vista:
+`counter_slice.actions.increment()` ahora devuelve una acción cuyo tipo es
+`counter/increment`.
+
+## 2. Configura el store
 
 ```python
-select_value = lambda state: state["counter"]["value"]
-unsubscribe = store.select(select_value, print, fire_immediately=True)
+from pydux import configure_store
+
+store = configure_store({"counter": counter_slice}, devtools=False)
+print(store.get_state())  # {"counter": {"value": 0}}
 ```
 
-El listener corre de inmediato y después sólo cuando el valor seleccionado cambia. Continúa con [stores y slices](/es/concepts/store-and-slices) o con la [guía para principiantes](/es/getting-started/qyro-for-beginners).
+Pasa `devtools=True` cuando quieras un historial de dispatch y el inspector local.
+
+## 3. Selecciona un valor y despacha acciones
+
+```python
+from pydux import create_selector
+
+select_value = lambda state: state["counter"]["value"]
+select_label = create_selector(select_value, lambda value: f"Count = {value}")
+
+unsubscribe = store.select(select_label, lambda label: print(label), fire_immediately=True)
+store.dispatch(counter_slice.actions.increment())
+store.dispatch(counter_slice.actions.increment())
+store.dispatch(counter_slice.actions.decrement())
+unsubscribe()
+```
+
+El listener se llama inmediatamente con `Count = 0` y, después, únicamente cuando una acción
+cambia el resultado del selector.
+
+## ¿Qué ocurre después de un clic?
+
+1. Un evento de UI despacha `counter_slice.actions.increment()`.
+2. El reducer `counter` recibe un draft aislado del estado de su slice.
+3. El store guarda el resultado del reducer.
+4. PyDux vuelve a ejecutar las suscripciones.
+5. Únicamente una suscripción cuyo valor seleccionado haya cambiado recibe un callback.
+
+Continúa con [stores y slices](/en/concepts/store-and-slices), o conecta este
+patrón a un componente de Qyro en [integración con Qyro](/en/integrations/qyro).

@@ -11,6 +11,21 @@ from pydux.core.store import Store
 from pydux.core.types import Selector, EqualityFn, Unsubscribe
 
 
+def _is_kivy_widget(component: Any) -> bool:
+    """Return whether a component is running inside an already-loaded Kivy app."""
+    # Do not import Kivy merely to identify another UI framework: its import
+    # initializes Kivy's logger and window providers inside Qt applications.
+    if not any(name == "kivy" or name.startswith("kivy.") for name in sys.modules):
+        return False
+
+    try:
+        from kivy.uix.widget import Widget  # type: ignore
+
+        return isinstance(component, Widget)
+    except Exception:
+        return False
+
+
 def _get_qt_single_shot() -> Optional[Callable[[int, Callable[[], None]], None]]:
     """Resolve QTimer.singleShot from the active Qt binding, if available."""
     for module_name in ("PySide6.QtCore", "PyQt6.QtCore", "PySide2.QtCore", "PyQt5.QtCore"):
@@ -31,23 +46,31 @@ def _get_qt_single_shot() -> Optional[Callable[[int, Callable[[], None]], None]]
 
 def _schedule_on_ui_tick(component: Any, fn: Callable[[], None]) -> bool:
     """Schedule callback on the active UI framework tick (Qt, Tkinter, or Kivy)."""
-    single_shot = _get_qt_single_shot()
-    if single_shot is not None:
-        single_shot(0, fn)
-        return True
+    # Kivy applications can be installed alongside a Qt binding. Detect a
+    # real Kivy widget before probing Qt so updates stay on Kivy's event loop.
+    if _is_kivy_widget(component):
+        try:
+            from kivy.clock import Clock  # type: ignore
 
+            Clock.schedule_once(lambda _dt: fn(), 0)
+            return True
+        except Exception:
+            return False
+
+    # Tk widgets expose ``after``. Check this before probing/importing Qt:
+    # environments used for Qyro demos commonly include PySide6 as well, and
+    # a QTimer without a Qt event loop can crash at Tk's native teardown.
     tk_after = getattr(component, "after", None)
     if callable(tk_after):
         tk_after(0, fn)
         return True
 
-    try:
-        from kivy.clock import Clock  # type: ignore
-
-        Clock.schedule_once(lambda _dt: fn(), 0)
+    single_shot = _get_qt_single_shot()
+    if single_shot is not None:
+        single_shot(0, fn)
         return True
-    except Exception:
-        return False
+
+    return False
 
 
 def _select_with_deferred_initial(

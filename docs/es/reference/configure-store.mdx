@@ -1,6 +1,6 @@
 ---
 title: "configure_store"
-description: "Referencia para crear un store configurado de PyDux."
+description: "Referencia para crear un store de PyDux configurado."
 icon: "settings-2"
 ---
 
@@ -19,25 +19,27 @@ configure_store(
 ) -> Store
 ```
 
-Crea un store con middleware de thunks. Acepta un reducer raíz o un mapa de nombres a reducers o `Slice`.
+Crea un store con middleware de thunks. Acepta un reducer raíz o un mapping de nombres de slices a instancias de `Slice` o funciones reducer.
 
 | Parámetro | Descripción |
 | --- | --- |
-| `reducer` | Reducer raíz o mapa de reducers/slices. |
-| `preloaded_state` | Estado inicial opcional. |
-| `middleware` | Middleware adicional después del thunk incorporado. |
-| `devtools` | `True`, una instancia `PyDuxDevTools` o `False`. |
-| `inspector_auto_start` | Inicia el inspector web con DevTools. |
-| `inspector_host` / `port` | Host y puerto preferido del inspector. |
+| `reducer` | Reducer raíz o mapping de nombres a reducers/slices. |
+| `preloaded_state` | Sobrescritura opcional del estado inicial. Con mappings de reducers, las keys proporcionadas reemplazan el estado inicial calculado del slice. |
+| `middleware` | Middleware adicional, después del middleware de thunks integrado. |
+| `devtools` | `True` para los DevTools integrados, una instancia de `PyDuxDevTools` o `False`. |
+| `inspector_auto_start` | Inicia el inspector web cuando DevTools están habilitados. |
+| `inspector_host` | Host de binding del inspector. |
+| `inspector_port` | Puerto preferido del inspector; si está ocupado, se elige un puerto libre. |
+| `inspector_log` | Imprime información de inicio del inspector. |
+
+## Ejemplos
 
 ```python
+# A reducer mapping
 store = configure_store({"counter": counter_slice}, devtools=False)
+
+# A root reducer
+store = configure_store(root_reducer, preloaded_state={"counter": {"value": 0}})
 ```
 
-## Estado inicial y middleware
-
-Cuando `reducer` es un diccionario, PyDux ejecuta cada reducer con `Action(type="@@PYDUX/INIT")` para obtener el estado inicial. `preloaded_state` reemplaza las claves proporcionadas, sin eliminar los defaults de los otros slices.
-
-El orden efectivo es: middleware de thunks, los middlewares personalizados en el orden entregado y, si está activo, middleware de DevTools antes del reducer interno. Los middlewares reciben `(store, next_dispatch)` y devuelven una función que recibe la acción.
-
-Si pasas un reducer raíz en vez de un mapa, debes manejar su inicialización cuando reciba `state=None`. `combine_reducers(...)` se exporta si necesitas componer reducers fuera de `configure_store`.
+Cuando DevTools están habilitados, el store expone `store.devtools`. Cuando el inspector se inicia correctamente, también expone `store.inspector`.

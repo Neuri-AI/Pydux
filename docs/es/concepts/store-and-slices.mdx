@@ -1,61 +1,82 @@
 ---
-title: "Stores, slices y acciones"
-description: "Entiende el árbol de estado y el modelo de actualizaciones basado en acciones."
+title: "Stores, slices y actions"
+description: "Comprende el árbol de estado de la aplicación y el modelo de actualización basado en actions."
 icon: "boxes"
 ---
 
-# Stores, slices y acciones
+# Stores, slices y actions
 
-El estado raíz suele ser un diccionario con una clave por slice.
+PyDux mantiene el estado de la aplicación en un único store. El estado raíz normalmente es un diccionario con una key por cada slice.
 
 ```python
-{"counter": {"value": 2}, "user": {"name": "Ada"}}
+{
+    "counter": {"value": 2},
+    "user": {"name": "Ada"},
+}
 ```
 
-## Crea un slice
+## Slices
+
+Utiliza `create_slice(...)` para mantener juntos una sección del estado, sus reducers y sus creadores de actions generados. Un reducer recibe `(state, action)`. Puede modificar el draft proporcionado o devolver un estado de reemplazo.
 
 ```python
 from pydux import create_slice
 
 user_slice = create_slice(
     name="user",
-    initial_state={"name": "Invitado"},
+    initial_state={"name": "Guest"},
     reducers={
         "set_name": lambda state, action: state.update(name=action.payload),
-        "reset": lambda state, action: {"name": "Invitado"},
+        "reset": lambda state, action: {"name": "Guest"},
     },
 )
 ```
 
-PyDux genera `user_slice.actions.set_name(...)` con el tipo `user/set_name`. Un reducer puede modificar el borrador recibido o devolver un estado de reemplazo.
+Los creadores de actions generados son `user_slice.actions.set_name(...)` y `user_slice.actions.reset()`. Sus tipos son `user/set_name` y `user/reset`.
 
-## Combina slices
+## Combinación de slices
+
+Pasa un mapping de nombres a slices o funciones reducer a `configure_store`.
 
 ```python
 from pydux import configure_store
 
-store = configure_store({"counter": counter_slice, "user": user_slice}, devtools=False)
+store = configure_store(
+    {"counter": counter_slice, "user": user_slice},
+    devtools=False,
+)
 ```
 
-Las acciones pueden transportar datos en `action.payload` y metadatos mediante `meta={...}`. Usa `extra_reducers` para responder a acciones externas, como el ciclo de vida de un thunk.
+Cada reducer de slice recibe únicamente su propia rama. Una action de un slice deja los demás slices sin cambios.
 
-### Contrato de los reducers
+## Payloads y metadatos
 
-PyDux copia profundamente el estado del slice antes de llamar un reducer. Si el reducer retorna `None`, conserva el borrador mutado; si retorna cualquier otro valor, ese valor reemplaza por completo al estado del slice. Las acciones cuyo tipo no pertenece al slice regresan exactamente el objeto de estado recibido, por lo que las ramas no afectadas no se vuelven a renderizar.
+Una action tiene un tipo, un payload opcional y metadatos opcionales. Los creadores de actions generados aceptan el payload como su primer argumento.
 
 ```python
-profile_slice = create_slice(
-    name="profile",
-    initial_state={"name": "Guest", "roles": []},
-    reducers={
-        "rename": lambda state, action: state.update(name=action.payload),
-        "sign_out": lambda state, action: {"name": "Guest", "roles": []},
+action = user_slice.actions.set_name("Ada", meta={"source": "profile-form"})
+
+assert action.type == "user/set_name"
+assert action.payload == "Ada"
+assert action.meta == {"source": "profile-form"}
+```
+
+## Actions externas con `extra_reducers`
+
+Utiliza `extra_reducers` para actions que pertenezcan a otra funcionalidad, especialmente actions del ciclo de vida de async thunks.
+
+```python
+jobs_slice = create_slice(
+    name="jobs",
+    initial_state={"status": "idle", "result": None},
+    reducers={},
+    extra_reducers={
+        "jobs/fetch/pending": lambda state, action: state.update(status="loading"),
+        "jobs/fetch/fulfilled": lambda state, action: state.update(status="done", result=action.payload),
     },
 )
 ```
 
-`extra_reducers` usa el tipo completo, no el nombre corto. Es apropiado para acciones como `jobs/fetch/fulfilled` que pertenecen conceptualmente a otro feature.
-
 <Tip>
-  Los reducers deben limitarse a transiciones de estado: no pongas I/O, red ni tareas lentas dentro de ellos.
+  Mantén las funciones reducer centradas en las transiciones de estado. Coloca I/O, timers y llamadas de red en thunks o funciones de servicio, no en reducers.
 </Tip>

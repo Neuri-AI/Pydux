@@ -1,42 +1,67 @@
 ---
 title: "Selectores y suscripciones"
-description: "Deriva estado y actualiza una vista sólo cuando cambia el valor que necesita."
+description: "Deriva el estado de forma eficiente y actualiza las vistas únicamente cuando cambien sus valores seleccionados."
 icon: "filter"
 ---
 
 # Selectores y suscripciones
 
-Un selector toma el estado completo y devuelve el dato que necesita un consumidor.
+Un selector es una función que transforma el estado completo en el valor que necesita un consumidor.
 
 ```python
 select_user_name = lambda state: state["user"]["name"]
-unsubscribe = store.select(select_user_name, lambda name: label.setText(name), fire_immediately=True)
 ```
 
-`create_selector` combina selectores y evita recalcular cuando sus entradas no cambiaron.
+Suscríbete con `store.select(...)`. Devuelve una función `unsubscribe`.
+
+```python
+unsubscribe = store.select(
+    selector=select_user_name,
+    listener=lambda name: label.setText(name),
+    fire_immediately=True,
+)
+unsubscribe()
+```
+
+## Selectores derivados y memoizados
+
+`create_selector` compone selectores de entrada y almacena en caché el cálculo anterior.
 
 ```python
 from pydux import create_selector
 
+select_first_name = lambda state: state["user"]["first_name"]
+select_last_name = lambda state: state["user"]["last_name"]
+
 select_full_name = create_selector(
-    lambda state: state["user"]["first_name"],
-    lambda state: state["user"]["last_name"],
+    select_first_name,
+    select_last_name,
     lambda first, last: f"{first} {last}",
 )
 ```
 
-| Helper | Cuándo usarlo |
+Si las entradas seleccionadas no han cambiado, el combinador no vuelve a ejecutarse.
+
+## Funciones de igualdad
+
+`store.select` utiliza `shallow_equal` de forma predeterminada. Proporciona una función de igualdad cuando tu selector cree un contenedor o cuando la identidad sea el contrato correcto.
+
+| Helper | Úsalo cuando |
 | --- | --- |
-| `is_identical` | La identidad del objeto importa. |
-| `shallow_equal` | Comparación de primer nivel; es el valor por defecto. |
-| `deep_equal` | Necesitas igualdad estructural anidada. |
+| `is_identical` | La misma instancia exacta del objeto indique que no hay cambios. |
+| `shallow_equal` | Deban compararse los valores de nivel superior de dicts, listas o tuplas. |
+| `deep_equal` | Se necesite igualdad estructural anidada; úsalo con moderación. |
 
-No modifiques el resultado de `store.get_state()`; los reducers son la única vía para cambiar estado compartido.
+```python
+from pydux import shallow_equal
 
-## Detalles de suscripción
+store.select(
+    lambda state: {"name": state["user"]["name"], "count": state["counter"]["value"]},
+    update_header,
+    equality_fn=shallow_equal,
+)
+```
 
-`store.select(selector, listener, equality_fn=None, fire_immediately=False)` evalúa el selector al registrarse y devuelve `unsubscribe()`. Con `fire_immediately=True` entrega ese primer valor de inmediato. Después de cada dispatch, PyDux compara el valor anterior con el nuevo y llama al listener sólo si el comparador devuelve `False`.
-
-`store.subscribe(listener)` es una suscripción al estado completo y recibe una llamada después de todo dispatch, incluso si el reducer devolvió el mismo estado. Para widgets, prefiere siempre `select`.
-
-Un error en un listener se registra y se aísla: no deshace ni cancela la transición de estado. También puedes llamar `unsubscribe()` más de una vez sin error.
+<Warning>
+  No modifiques el objeto devuelto por `store.get_state()`. Los reducers deben ser el único código que cambie el estado compartido.
+</Warning>

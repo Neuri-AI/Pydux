@@ -1,37 +1,73 @@
 ---
 title: "DevTools e inspector"
-description: "Registra acciones, inspecciona cambios y navega el historial de estado."
+description: "Registra actions, inspecciona transiciones de estado y navega por el historial de la aplicación."
 icon: "history"
 ---
 
 # DevTools e inspector
 
-Activa `devtools=True` al crear el store. PyDux registra cada dispatch e inicia un inspector local en `127.0.0.1:8765`; si el puerto está ocupado, usa otro libre.
+Establece `devtools=True` al crear un store para registrar cada dispatch. PyDux también inicia de forma predeterminada un inspector local en `127.0.0.1:8765`; si ese puerto está ocupado, elige uno disponible.
 
 ```python
+from pydux import configure_store
+
 store = configure_store({"counter": counter_slice}, devtools=True)
 print(store.inspector.base_url)
+```
+
+Abre `store.inspector.base_url` en un navegador para ver actions, payloads, diferencias de estado e historial. La página se actualiza en tiempo real mediante Server-Sent Events.
+
+## Time travel
+
+```python
 store.devtools.undo()
 store.devtools.redo()
 store.devtools.jump_to_state(4)
 ```
 
-El inspector muestra acciones, payloads, diferencias de estado e historial en tiempo real.
+| Miembro | Propósito |
+| --- | --- |
+| `history` | Valores `ActionTrace` registrados. |
+| `undo()` / `redo()` | Desplazarse por los estados registrados. |
+| `jump_to_state(index)` | Restaurar un estado registrado. |
+| `export_trace_json()` | Exportar la lista actual de traces como JSON. |
+
+Las actions de time travel no crean otro trace, por lo que navegar por el historial no lo contamina.
+
+## Configuración del inspector
+
+```python
+store = configure_store(
+    {"counter": counter_slice},
+    devtools=True,
+    inspector_host="127.0.0.1",
+    inspector_port=9900,
+    inspector_log=False,
+)
+```
+
+Para administrar el inicio por tu cuenta, desactiva el inicio automático y llama a `start_inspector`:
+
+```python
+from pydux import start_inspector
+
+store = configure_store({"counter": counter_slice}, devtools=True, inspector_auto_start=False)
+inspector = start_inspector(store, host="127.0.0.1", port=9900)
+inspector.stop()  # At application shutdown, if explicit cleanup is needed.
+```
+
+## Endpoints HTTP
 
 | Endpoint | Descripción |
 | --- | --- |
-| `GET /health` | Estado del inspector. |
-| `GET /api/traces` | Trazas registradas. |
-| `GET /api/state` | Estado actual. |
-| `POST /api/undo` / `redo` | Navegación de historial. |
-| `POST /api/jump` | Salta a `{"index": <int>}`. |
+| `GET /health` | Comprobación de disponibilidad. |
+| `GET /api/traces` | Traces registrados e índice activo. |
+| `GET /api/state` | Estado actual del store. |
+| `POST /api/undo` | Deshacer un estado. |
+| `POST /api/redo` | Rehacer un estado. |
+| `POST /api/jump` | Saltar a `{"index": <int>}`. |
+| `GET /api/events` | Stream SSE en tiempo real. |
 
 <Warning>
-  DevTools conserva snapshots y calcula diferencias en cada dispatch. Desactívalo en rutas sensibles a rendimiento si no lo necesitas.
+  DevTools conserva snapshots y calcula diferencias después de cada dispatch. Desactívalo en rutas de producción sensibles al rendimiento, a menos que lo necesites explícitamente.
 </Warning>
-
-## Trazas, límites y control manual
-
-Cada `ActionTrace` incluye `index`, `action`, `prev_state`, `next_state`, `timestamp`, `duration_ms` y `changed_paths`. `PyDuxDevTools(max_history=100)` limita el historial; al superar el límite descarta la traza más antigua. Las acciones internas de viaje en el tiempo no añaden una nueva traza.
-
-Para controlar el servidor manualmente, crea el store con `inspector_auto_start=False` y usa `start_inspector(store, host="127.0.0.1", port=9900)`. El resultado expone `host`, `port`, `base_url`, `start()` y `stop()`. Si el store no tiene DevTools, `start_inspector` lanza `ValueError`.

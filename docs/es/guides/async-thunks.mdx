@@ -1,12 +1,14 @@
 ---
 title: "Thunks asíncronos"
-description: "Modela tareas asíncronas con estados pending, fulfilled y rejected."
+description: "Modela trabajo asíncrono con transiciones de estado pending, fulfilled y rejected."
 icon: "loader-circle"
 ---
 
 # Thunks asíncronos
 
-`create_async_thunk(type_prefix, payload_creator)` envuelve una función o coroutine y despacha acciones de ciclo de vida. `configure_store(...)` instala el middleware necesario.
+`create_async_thunk(type_prefix, payload_creator)` envuelve una función síncrona o coroutine y despacha actions del ciclo de vida a su alrededor. `configure_store(...)` instala automáticamente el middleware de thunks.
+
+## Define las transiciones de estado
 
 ```python
 from pydux import create_async_thunk, create_slice
@@ -22,21 +24,26 @@ jobs_slice = create_slice(
     },
 )
 
-fetch_jobs = create_async_thunk("jobs/fetch", lambda: ["build", "test"])
+fetch_jobs = create_async_thunk("jobs/fetch", lambda: ["build", "test", "release"])
+```
+
+## Despacha el thunk
+
+```python
 store.dispatch(fetch_jobs())
 ```
 
-| Acción | Cuándo ocurre |
-| --- | --- |
-| `pending` | Empieza el trabajo. |
-| `fulfilled` | La función devuelve un valor. |
-| `rejected` | La función lanza un error. |
+| Action | Cuándo | Payload |
+| --- | --- | --- |
+| `jobs/fetch/pending` | El creador del payload comienza. | Primer argumento del thunk, si existe. |
+| `jobs/fetch/fulfilled` | Retorna correctamente. | Valor retornado. |
+| `jobs/fetch/rejected` | Lanza una excepción. | Mensaje de error. |
 
-El error original se vuelve a lanzar después de despachar `rejected`, por lo que el llamador puede manejarlo.
+La excepción original se vuelve a lanzar después de despachar la action rejected, por lo que quienes realizan la llamada aún pueden manejarla.
 
-## Argumentos, coroutines y middleware
+## Coroutines
 
-El primer argumento posicional del thunk se convierte en el payload de `pending`; también puedes pasar `arg=`. El payload creator recibe todos los `*args` y `**kwargs` originales. Si retorna un awaitable, PyDux lo resuelve antes de despachar `fulfilled`.
+Los creadores de payload pueden ser funciones `async def`. PyDux resuelve su resultado awaitable antes de despachar la action fulfilled.
 
 ```python
 async def fetch_temperature(sensor_id: str) -> float:
@@ -46,4 +53,6 @@ fetch_temperature_thunk = create_async_thunk("telemetry/fetch", fetch_temperatur
 store.dispatch(fetch_temperature_thunk("sensor-1"))
 ```
 
-El middleware invoca un thunk como `thunk(dispatch, get_state, extra_argument)`. `configure_store` ya instala este middleware; sólo usa `create_thunk_middleware(extra_argument=...)` si construyes un `Store` manualmente.
+<Note>
+  Los thunks coordinan trabajo y emiten actions; los reducers permanecen como transiciones de estado síncronas. Esta separación mantiene el comportamiento de los reducers determinista y fácil de probar.
+</Note>

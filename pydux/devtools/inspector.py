@@ -158,6 +158,15 @@ class PyDuxInspectorServer:
         server = self
 
         class _Handler(BaseHTTPRequestHandler):
+            def handle(self) -> None:
+                """Treat a browser closing an HTTP/SSE socket as expected."""
+                try:
+                    super().handle()
+                except _CLIENT_DISCONNECTED:
+                    # BaseHTTPRequestHandler otherwise prints a traceback for
+                    # a normal tab close while it is reading the next request.
+                    return
+
             def _send_json(self, payload: dict[str, Any], status: int = HTTPStatus.OK) -> None:
                 data = json.dumps(payload, ensure_ascii=True, default=str).encode("utf-8")
                 self.send_response(status)

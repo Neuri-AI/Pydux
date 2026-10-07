@@ -1,36 +1,56 @@
 ---
 title: "Introducción"
-description: "Qué es PyDux, cómo encaja con Qyro y cómo fluye el estado en una aplicación."
+description: "Aprende qué es PyDux, dónde encaja en el ecosistema Qyro y cómo se mueve el estado a través de una aplicación."
 icon: "sparkles"
 ---
 
 # PyDux
 
-PyDux es un contenedor de estado inspirado en Redux Toolkit para aplicaciones de escritorio en Python. Centraliza el estado, registra cambios como acciones y actualiza sólo a los consumidores cuyo dato seleccionado cambió.
+PyDux es un contenedor de estado inspirado en Redux Toolkit para aplicaciones de escritorio en Python.
+Proporciona a una aplicación una única fuente de verdad observable y una forma predecible de
+cambiarla: despachar una acción, permitir que un reducer produzca el siguiente estado y actualizar
+únicamente a los suscriptores cuyo valor seleccionado haya cambiado.
 
 <Warning>
-  PyDux está en alpha. Las APIs, adaptadores y DevTools pueden cambiar entre versiones.
+  PyDux se encuentra actualmente en alpha. Las APIs, los adaptadores de frameworks, el comportamiento de DevTools y
+  los metadatos de empaquetado pueden cambiar entre releases.
 </Warning>
 
-## Qué ofrece
+## Qué proporciona PyDux
 
-- Slices con reducers y creadores de acciones generados.
-- Suscripciones selectivas y selectores memorizados.
-- Thunks asíncronos con acciones `pending`, `fulfilled` y `rejected`.
-- DevTools con historial, viaje en el tiempo e inspector local.
-- Adaptadores para Qt, Tkinter, Kivy y Qyro.
+- **Slices** que mantienen juntos una sección del estado, la lógica del reducer y los creadores de acciones.
+- **Suscripciones selectivas** mediante `store.select(...)` y selectores memoizados.
+- **Thunks asíncronos** que modelan trabajo `pending`, `fulfilled` y `rejected`.
+- **DevTools** con historial de acciones, time travel y un inspector local en el navegador.
+- **Adaptadores de UI** para Qt, Tkinter, Kivy y Qyro sin una dependencia de GUI en el core.
+
+## Cómo encaja con Qyro
 
 | Herramienta | Responsabilidad |
 | --- | --- |
-| PyDux | Estado y transiciones de la aplicación. |
-| Qyro Runtime | Contexto, recursos, settings y ciclo de vida. |
-| Qyro CLI | Creación, build, empaquetado y firma de proyectos. |
+| PyDux | Estado de la aplicación y transiciones de estado. |
+| [Qyro Runtime](https://github.com/Neuri-AI/qyro) | Contexto de la aplicación, recursos, configuración y ciclo de vida de componentes. |
+| [Qyro CLI](https://github.com/Neuri-AI/qyro-cli) | Creación de proyectos, desarrollo, builds, empaquetado y firma. |
+
+PyDux puede utilizarse sin Qyro. Utiliza la integración con Qyro cuando tu aplicación
+use componentes de Qyro y quieras suscripciones conscientes del ciclo de vida.
+
+## El flujo de datos
 
 ```text
-Evento de UI → dispatch(acción) → reducer actualiza estado → selector cambia → vista actualiza
+UI event → dispatch(action) → reducer updates state → selector changes → view updates
 ```
 
+La UI no modifica directamente el estado compartido de la aplicación. Despacha acciones.
+Esto hace que los cambios sean trazables, comprobables y fáciles de reproducir en DevTools.
+
+## Siguientes pasos
+
 <CardGroup cols={2}>
-  <Card title="Instalación" icon="download" href="/es/getting-started/installation">Instala PyDux y los extras de tu framework.</Card>
-  <Card title="Guía para principiantes" icon="graduation-cap" href="/es/getting-started/qyro-for-beginners">Construye tu primera aplicación PyDux + Qyro.</Card>
+  <Card title="Instalar PyDux" icon="download" href="/en/getting-started/installation">
+    Instala el paquete core y únicamente los extras opcionales de UI que necesites.
+  </Card>
+  <Card title="Crear un contador" icon="circle-play" href="/en/getting-started/quickstart">
+    Crea un slice, configura un store y suscríbete a un valor derivado.
+  </Card>
 </CardGroup>
