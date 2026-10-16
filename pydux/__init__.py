@@ -21,6 +21,11 @@ from pydux.devtools.inspector import PyDuxInspectorServer, start_inspector
 # UI Adapters & Framework Bridges
 from pydux.adapters.base import MainThreadBridge, ReactiveBinding, connect
 from pydux.adapters.qyro import Reactive, connect_qyro
+try:  # Optional: importing Pydux core does not require PSX.
+    from pydux.adapters.psx import StoreProvider, use_dispatch, use_selector
+except ModuleNotFoundError as exc:  # pragma: no cover - depends on installation extras
+    if exc.name != "psx":
+        raise
 
 __version__ = "3.0.0"
 __all__ = [
@@ -57,3 +62,6 @@ __all__ = [
     "Reactive",
     "connect_qyro",
 ]
+
+if "StoreProvider" in globals():
+    __all__ += ["StoreProvider", "use_dispatch", "use_selector"]
