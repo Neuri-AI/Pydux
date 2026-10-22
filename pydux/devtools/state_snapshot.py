@@ -45,7 +45,10 @@ def restore_store_state(store: Any, snapshot: dict[str, Any]) -> None:
         if store._is_dispatching:
             raise RuntimeError("Cannot restore state while dispatching.")
         # Validate selectors before mutating the live store.
-        selected = [(sub, sub.selector(candidate)) for sub in store._subscriptions if sub.active]
+        for sub in store._subscriptions:
+            if sub.active:
+                sub.selector(candidate)
         store._state = candidate
-        for sub, value in selected:
-            sub.last_value = value
+        # Update subscribed PSX views using the existing Store notification path.
+        # Selector validation above prevents partial state replacement on errors.
+        store._notify_subscribers()
