@@ -78,6 +78,19 @@ class Store(Generic[TState]):
         with self._lock:
             return self._state
 
+    def replace_reducer(self, reducer: Reducer[TState], state: TState) -> None:
+        """Atomically install a new reducer and migrated state, notifying selectors.
+
+        Used by the development hot-reload coordinator, not by normal dispatch.
+        The replacement does not create a fake user action or rebuild middleware.
+        """
+        with self._lock:
+            if self._is_dispatching:
+                raise RuntimeError("Cannot replace a reducer during dispatch.")
+            self._reducer = reducer
+            self._state = state
+            self._notify_subscribers()
+
     def dispatch(self, action: Any) -> Any:
         """Dispatches an action through the middleware chain to the reducer."""
         return self._dispatch(action)
