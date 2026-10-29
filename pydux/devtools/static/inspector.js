@@ -3,7 +3,7 @@ const state = {
     selectedIndex: -1,
     activeIndex: -1,
     currentState: null,
-    tab: "diff",
+    tab: "state",
     stream: null,
     replaying: false,
 };
@@ -69,14 +69,9 @@ function renderHistory() {
     els.summary.textContent = `${state.history.length} traces, active #${state.activeIndex}`;
     els.history.innerHTML = "";
 
-    if (state.history.length === 0) {
-        els.empty.style.display = "block";
-        els.content.style.display = "none";
-        return;
-    }
-
     els.empty.style.display = "none";
     els.content.style.display = "block";
+    if (state.history.length === 0) return;
 
     for (const trace of state.history) {
         const li = document.createElement("li");
@@ -111,7 +106,11 @@ function renderHistory() {
 function renderDetail() {
     const trace = selectedTrace();
     if (!trace) {
-        els.content.textContent = "No trace selected.";
+        if (state.tab === "state") {
+            setContent(state.currentState);
+        } else {
+            els.content.textContent = "No actions dispatched yet.";
+        }
         return;
     }
 
@@ -126,7 +125,7 @@ function renderDetail() {
     }
 
     if (state.tab === "state") {
-        setContent(trace.next_state ?? state.currentState);
+        setContent(state.selectedIndex === state.activeIndex ? state.currentState : trace.next_state);
         return;
     }
 
@@ -251,6 +250,7 @@ for (const tab of els.tabs) {
 }
 
 (async () => {
+    for (const t of els.tabs) t.classList.toggle("active", t.dataset.tab === state.tab);
     await fetchSnapshot();
     connectStream();
 })();
