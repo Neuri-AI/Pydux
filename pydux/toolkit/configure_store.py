@@ -107,6 +107,8 @@ def configure_store(
         initial_state = preloaded_state if preloaded_state is not None else root_reducer(None, Action(type="@@PYDUX/INIT"))
 
     store = Store(reducer=root_reducer, initial_state=initial_state, middlewares=all_middlewares)
+    if isinstance(reducer, dict):
+        store._pydux_slice_definitions = dict(reducer)
 
     # Attach devtools instance attribute if active
     if active_devtools:
