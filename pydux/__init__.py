@@ -7,6 +7,7 @@ with memoized selectors, zero redundant re-renders, and full Qyro/PySide/Tkinter
 # Redux Toolkit style modern API
 from pydux.toolkit.slice import create_slice, Slice
 from pydux.toolkit.configure_store import configure_store, combine_reducers
+from pydux.toolkit.hot_reload import reconfigure_store
 from pydux.toolkit.async_thunk import create_async_thunk, create_thunk_middleware
 
 # Core Store & Selectors
@@ -35,6 +36,7 @@ __all__ = [
     "create_async_thunk",
     "create_thunk_middleware",
     "combine_reducers",
+    "reconfigure_store",
     "Slice",
 
     # Core Store & Selectors
