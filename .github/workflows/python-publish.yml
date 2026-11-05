@@ -1,68 +1,178 @@
-# This workflow will upload a Python Package to PyPI when a release is created
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python#publishing-to-package-registries
-
 name: Upload Python Package
 
 on:
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing GitHub release tag (e.g. v0.1.1)"
+        required: true
+        type: string
 
 permissions:
   contents: read
 
+concurrency:
+  group: pypi-publish-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.event.release.tag_name }}
+  cancel-in-progress: false
+
 jobs:
   release-build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.event.release.tag_name }}
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Validate tag format
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$RELEASE_TAG" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Invalid release tag: $RELEASE_TAG (expected vX.Y.Z or X.Y.Z)"
+            exit 1
+          fi
 
-      - uses: actions/setup-python@v5
+      - name: Check out the exact release tag
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+          persist-credentials: false
+
+      - name: Verify the GitHub release exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
         with:
           python-version: "3.10"
 
-      - name: Install Poetry (Force v2.x Core)
+      - name: Install Poetry
         run: |
-          curl -sSL https://install.python-poetry.org | POETRY_VERSION=2.0.1 python3 -
-          echo "$HOME/.local/bin" >> $GITHUB_PATH
+          curl -fsSL https://install.python-poetry.org | POETRY_VERSION=2.4.1 python3 -
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
-      - name: Configure Poetry and Install Dependencies
+      - name: Validate tag matches package version
+        shell: bash
         run: |
-          poetry config virtualenvs.create true
-          poetry config virtualenvs.in-project true
-          poetry install --no-interaction --all-extras
+          set -euo pipefail
+          expected="${RELEASE_TAG#v}"
+          actual="$(poetry version --short)"
+          if [[ "$actual" != "$expected" ]]; then
+            echo "::error::Version mismatch: tag $RELEASE_TAG, pyproject.toml $actual"
+            exit 1
+          fi
+          echo "Verified pydux $actual from tag $RELEASE_TAG"
 
-      - name: Build release distributions (Poetry Core 2.0)
+      - name: Reject versions already published on PyPI
+        shell: bash
         run: |
-          poetry build
+          python - <<'PY'
+          import os
+          import urllib.error
+          import urllib.request
 
-      - name: Upload distributions
+          version = os.environ["RELEASE_TAG"].removeprefix("v")
+          url = f"https://pypi.org/pypi/pydux/{version}/json"
+          try:
+              with urllib.request.urlopen(url, timeout=20):
+                  pass
+          except urllib.error.HTTPError as exc:
+              if exc.code == 404:
+                  print(f"pydux {version} is not on PyPI; publication may proceed.")
+              else:
+                  raise
+          else:
+              raise SystemExit(f"::error::pydux {version} already exists on PyPI.")
+          PY
+
+      - name: Build wheel and source distribution
+        run: poetry build --clean
+
+      - name: Validate built distribution metadata
+        shell: bash
+        run: |
+          python - <<'PY'
+          import email
+          import os
+          import tarfile
+          import zipfile
+          from pathlib import Path
+
+          version = os.environ["RELEASE_TAG"].removeprefix("v")
+          artifacts = sorted(Path("dist").iterdir())
+          wheels = [p for p in artifacts if p.suffix == ".whl"]
+          sdists = [p for p in artifacts if p.name.endswith(".tar.gz")]
+          assert len(artifacts) == 2 and len(wheels) == 1 and len(sdists) == 1, artifacts
+          assert wheels[0].name.startswith(f"pydux-{version}-"), wheels[0].name
+          assert sdists[0].name == f"pydux-{version}.tar.gz", sdists[0].name
+
+          with zipfile.ZipFile(wheels[0]) as archive:
+              names = [n for n in archive.namelist() if n.endswith(".dist-info/METADATA")]
+              assert len(names) == 1, names
+              wheel_info = email.message_from_bytes(archive.read(names[0]))
+
+          with tarfile.open(sdists[0], "r:gz") as archive:
+              members = [m for m in archive.getmembers() if m.name.endswith("/PKG-INFO")]
+              assert len(members) == 1, members
+              stream = archive.extractfile(members[0])
+              assert stream is not None
+              sdist_info = email.message_from_bytes(stream.read())
+
+          for info in (wheel_info, sdist_info):
+              assert info.get("Name", "").lower().replace("_", "-") == "pydux", info.get("Name")
+              assert info.get("Version") == version, info.get("Version")
+
+          print(f"Validated pydux {version}: {wheels[0].name} and {sdists[0].name}")
+          PY
+
+      - name: Upload release distributions
         uses: actions/upload-artifact@v4
         with:
           name: release-dists
           path: dist/
+          if-no-files-found: error
+          retention-days: 7
 
   pypi-publish:
-    runs-on: ubuntu-latest
-    needs:
-      - release-build
-    permissions:
-      # IMPORTANT: this permission is mandatory for trusted publishing
-      id-token: write
-
-    # Dedicated environments with protections for publishing are strongly recommended.
+    runs-on: ubuntu-24.04
+    needs: release-build
     environment:
       name: pypi
-      url: https://pypi.org{{ github.event.release.name }}
-
+      url: https://pypi.org/project/pydux/
+    permissions:
+      id-token: write
     steps:
-      - name: Retrieve release distributions
+      - name: Download distributions
         uses: actions/download-artifact@v4
         with:
           name: release-dists
           path: dist/
 
-      - name: Publish release distributions to PyPI
+      - name: Publish distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: dist/
+
+  github-release-assets:
+    runs-on: ubuntu-24.04
+    needs: [release-build, pypi-publish]
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.event.release.tag_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Download distributions
+        uses: actions/download-artifact@v4
+        with:
+          name: release-dists
+          path: dist/
+
+      - name: Attach wheel and sdist to existing GitHub release
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release upload "$RELEASE_TAG" dist/*.whl dist/*.tar.gz --repo "$GITHUB_REPOSITORY"
