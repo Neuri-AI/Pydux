@@ -1,5 +1,5 @@
 [project]
-name = "pydux-store"
+name = "pydux-state"
 version = "0.1.0"
 description = "A Redux Toolkit-inspired state container for Python desktop applications."
 authors = [
