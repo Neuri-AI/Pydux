@@ -64,7 +64,7 @@ jobs:
             echo "::error::Version mismatch: tag $RELEASE_TAG, pyproject.toml $actual"
             exit 1
           fi
-          echo "Verified pydux $actual from tag $RELEASE_TAG"
+          echo "Verified pydux-state $actual from tag $RELEASE_TAG"
 
       - name: Reject versions already published on PyPI
         shell: bash
@@ -75,17 +75,17 @@ jobs:
           import urllib.request
 
           version = os.environ["RELEASE_TAG"].removeprefix("v")
-          url = f"https://pypi.org/pypi/pydux/{version}/json"
+          url = f"https://pypi.org/pypi/pydux-state/{version}/json"
           try:
               with urllib.request.urlopen(url, timeout=20):
                   pass
           except urllib.error.HTTPError as exc:
               if exc.code == 404:
-                  print(f"pydux {version} is not on PyPI; publication may proceed.")
+                  print(f"pydux-state {version} is not on PyPI; publication may proceed.")
               else:
                   raise
           else:
-              raise SystemExit(f"::error::pydux {version} already exists on PyPI.")
+              raise SystemExit(f"::error::pydux-state {version} already exists on PyPI.")
           PY
 
       - name: Build wheel and source distribution
@@ -106,8 +106,8 @@ jobs:
           wheels = [p for p in artifacts if p.suffix == ".whl"]
           sdists = [p for p in artifacts if p.name.endswith(".tar.gz")]
           assert len(artifacts) == 2 and len(wheels) == 1 and len(sdists) == 1, artifacts
-          assert wheels[0].name.startswith(f"pydux-{version}-"), wheels[0].name
-          assert sdists[0].name == f"pydux-{version}.tar.gz", sdists[0].name
+          assert wheels[0].name.startswith(f"pydux_state-{version}-"), wheels[0].name
+          assert sdists[0].name == f"pydux_state-{version}.tar.gz", sdists[0].name
 
           with zipfile.ZipFile(wheels[0]) as archive:
               names = [n for n in archive.namelist() if n.endswith(".dist-info/METADATA")]
@@ -122,10 +122,10 @@ jobs:
               sdist_info = email.message_from_bytes(stream.read())
 
           for info in (wheel_info, sdist_info):
-              assert info.get("Name", "").lower().replace("_", "-") == "pydux", info.get("Name")
+              assert info.get("Name", "").lower().replace("_", "-") == "pydux-state", info.get("Name")
               assert info.get("Version") == version, info.get("Version")
 
-          print(f"Validated pydux {version}: {wheels[0].name} and {sdists[0].name}")
+          print(f"Validated pydux-state {version}: {wheels[0].name} and {sdists[0].name}")
           PY
 
       - name: Upload release distributions
@@ -141,7 +141,7 @@ jobs:
     needs: release-build
     environment:
       name: pypi
-      url: https://pypi.org/project/pydux/
+      url: https://pypi.org/project/pydux-state/
     permissions:
       id-token: write
     steps:
